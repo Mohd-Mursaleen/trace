@@ -42,38 +42,100 @@ export function JournalCalendar({ onDayPress }: Props) {
     return map;
   }, [index]);
 
+  const yearEntryCount = useMemo(
+    () => index.filter((e) => e.date.startsWith(`${year}-`)).length,
+    [index, year],
+  );
+
   return (
     <View style={styles.wrap}>
-      <Header
-        view={view}
-        year={year}
-        month={month}
-        onViewChange={setView}
-        onPrev={() => {
-          if (view === "month") {
-            if (month === 0) {
-              setMonth(11);
+      {/* View toggle pill */}
+      <View style={styles.toggleWrap}>
+        <View
+          style={[
+            styles.togglePill,
+            { backgroundColor: colors.cardAlt, borderColor: colors.border },
+          ]}
+        >
+          {(["month", "year"] as CalView[]).map((mode) => (
+            <Pressable
+              key={mode}
+              onPress={() => setView(mode)}
+              style={({ pressed }) => ({
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 9,
+                backgroundColor: view === mode ? colors.accent : "transparent",
+                opacity: pressed ? 0.85 : 1,
+              })}
+            >
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontFamily:
+                    view === mode ? "Inter_600SemiBold" : "Inter_400Regular",
+                  color: view === mode ? "#0a0a0a" : colors.textMuted,
+                  letterSpacing: 0.2,
+                }}
+              >
+                {mode === "month" ? "Monthly" : "Yearly"}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      {/* Nav header */}
+      <View style={styles.header}>
+        <Pressable
+          onPress={() => {
+            if (view === "month") {
+              if (month === 0) { setMonth(11); setYear(year - 1); }
+              else setMonth(month - 1);
+            } else {
               setYear(year - 1);
-            } else {
-              setMonth(month - 1);
             }
-          } else {
-            setYear(year - 1);
-          }
-        }}
-        onNext={() => {
-          if (view === "month") {
-            if (month === 11) {
-              setMonth(0);
+          }}
+          style={({ pressed }) => [
+            styles.arrowBtn,
+            { backgroundColor: pressed ? colors.cardAlt : "transparent" },
+          ]}
+        >
+          <Feather name="chevron-left" size={16} color={colors.textMuted} />
+        </Pressable>
+
+        {view === "month" ? (
+          <Text style={[styles.monthTitle, { color: colors.foreground }]}>
+            {MONTHS[month]} {year}
+          </Text>
+        ) : (
+          <View style={styles.yearTitleWrap}>
+            <Text style={[styles.yearTitle, { color: colors.foreground }]}>
+              {year}
+            </Text>
+            <Text style={[styles.yearCount, { color: colors.textMuted }]}>
+              {yearEntryCount} {yearEntryCount === 1 ? "memory" : "memories"}
+            </Text>
+          </View>
+        )}
+
+        <Pressable
+          onPress={() => {
+            if (view === "month") {
+              if (month === 11) { setMonth(0); setYear(year + 1); }
+              else setMonth(month + 1);
+            } else {
               setYear(year + 1);
-            } else {
-              setMonth(month + 1);
             }
-          } else {
-            setYear(year + 1);
-          }
-        }}
-      />
+          }}
+          style={({ pressed }) => [
+            styles.arrowBtn,
+            { backgroundColor: pressed ? colors.cardAlt : "transparent" },
+          ]}
+        >
+          <Feather name="chevron-right" size={16} color={colors.textMuted} />
+        </Pressable>
+      </View>
 
       {view === "month" ? (
         <MonthView
@@ -98,118 +160,6 @@ export function JournalCalendar({ onDayPress }: Props) {
   );
 }
 
-function Header({
-  view,
-  year,
-  month,
-  onViewChange,
-  onPrev,
-  onNext,
-}: {
-  view: CalView;
-  year: number;
-  month: number;
-  onViewChange: (v: CalView) => void;
-  onPrev: () => void;
-  onNext: () => void;
-}) {
-  const colors = useColors();
-  const title = view === "month" ? `${MONTHS[month]} ${year}` : `${year}`;
-
-  return (
-    <View style={styles.header}>
-      <View style={styles.headerRow}>
-        <Pressable
-          onPress={onPrev}
-          hitSlop={10}
-          style={({ pressed }) => [
-            styles.iconBtn,
-            {
-              backgroundColor: colors.cardAlt,
-              borderColor: colors.border,
-              opacity: pressed ? 0.7 : 1,
-            },
-          ]}
-        >
-          <Feather name="chevron-left" size={16} color={colors.text} />
-        </Pressable>
-
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-
-        <Pressable
-          onPress={onNext}
-          hitSlop={10}
-          style={({ pressed }) => [
-            styles.iconBtn,
-            {
-              backgroundColor: colors.cardAlt,
-              borderColor: colors.border,
-              opacity: pressed ? 0.7 : 1,
-            },
-          ]}
-        >
-          <Feather name="chevron-right" size={16} color={colors.text} />
-        </Pressable>
-      </View>
-
-      <View style={styles.toggleRow}>
-        <View
-          style={[
-            styles.togglePill,
-            {
-              backgroundColor: colors.cardAlt,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <Pressable
-            onPress={() => onViewChange("month")}
-            style={[
-              styles.toggleTab,
-              view === "month" && { backgroundColor: colors.accent },
-            ]}
-          >
-            <Text
-              style={[
-                styles.toggleTabText,
-                {
-                  color:
-                    view === "month" ? colors.accentForeground : colors.mutedForeground,
-                  fontFamily:
-                    view === "month" ? "Inter_600SemiBold" : "Inter_400Regular",
-                },
-              ]}
-            >
-              Monthly
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => onViewChange("year")}
-            style={[
-              styles.toggleTab,
-              view === "year" && { backgroundColor: colors.accent },
-            ]}
-          >
-            <Text
-              style={[
-                styles.toggleTabText,
-                {
-                  color:
-                    view === "year" ? colors.accentForeground : colors.mutedForeground,
-                  fontFamily:
-                    view === "year" ? "Inter_600SemiBold" : "Inter_400Regular",
-                },
-              ]}
-            >
-              Yearly
-            </Text>
-          </Pressable>
-        </View>
-      </View>
-    </View>
-  );
-}
-
 function MonthView({
   year,
   month,
@@ -223,22 +173,19 @@ function MonthView({
 }) {
   const colors = useColors();
   const { width } = useWindowDimensions();
-  const horizontalPad = 20;
+  const horizontalPad = 16;
   const gap = 6;
   const available = Math.min(width, 600) - horizontalPad * 2;
   const cellSize = Math.floor((available - gap * 6) / 7);
   const cells = buildMonthGrid(year, month);
 
   return (
-    <View style={{ paddingHorizontal: horizontalPad }}>
+    <View style={{ paddingHorizontal: horizontalPad, paddingBottom: 16 }}>
       <View style={styles.weekdayRow}>
         {WEEKDAYS_SHORT.map((d, i) => (
           <Text
             key={`${d}-${i}`}
-            style={[
-              styles.weekday,
-              { color: colors.textDim, width: cellSize },
-            ]}
+            style={[styles.weekday, { color: colors.textDim, width: cellSize }]}
           >
             {d}
           </Text>
@@ -275,7 +222,7 @@ function YearView({
 }) {
   const colors = useColors();
   const { width } = useWindowDimensions();
-  const horizontalPad = 20;
+  const horizontalPad = 16;
   const colGap = 16;
   const cellGap = 2;
   const containerWidth = Math.min(width, 600) - horizontalPad * 2;
@@ -338,46 +285,47 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     maxWidth: 600,
   },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 14,
-    paddingBottom: 10,
-    gap: 12,
+  toggleWrap: {
+    alignItems: "center",
+    paddingTop: 16,
+    paddingBottom: 4,
   },
-  headerRow: {
+  togglePill: {
+    flexDirection: "row",
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 4,
+    overflow: "hidden",
+  },
+  header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  iconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  arrowBtn: {
+    padding: 8,
+    borderRadius: 8,
   },
-  title: {
+  monthTitle: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 17,
     letterSpacing: -0.3,
   },
-  toggleRow: {
+  yearTitleWrap: {
     alignItems: "center",
   },
-  togglePill: {
-    flexDirection: "row",
-    borderRadius: 999,
-    borderWidth: 1,
-    overflow: "hidden",
+  yearTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 28,
+    letterSpacing: -1,
   },
-  toggleTab: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  toggleTabText: {
-    fontSize: 13,
-    letterSpacing: 0.1,
+  yearCount: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 10,
+    marginTop: 2,
+    textAlign: "center",
   },
   weekdayRow: {
     flexDirection: "row",

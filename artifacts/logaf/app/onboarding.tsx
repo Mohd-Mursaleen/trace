@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DotGrid } from "@/components/DotGrid";
 import { useColors } from "@/hooks/useColors";
 import { useJournalStore } from "@/hooks/useJournalStore";
 
@@ -79,6 +80,7 @@ export default function Onboarding() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <DotGrid />
       <StatusBar style="light" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}

@@ -3,9 +3,10 @@ export async function syncToSupermemory(
   date: string,
   text: string,
 ): Promise<{ success: boolean; error?: string }> {
-  if (!key || !text.trim()) return { success: false, error: "No key or empty text" };
+  if (!key?.trim() || !text?.trim()) return { success: false, error: "missing key or text" };
 
   try {
+    console.log("Syncing to Supermemory, key present:", !!key, "date:", date);
     const res = await fetch("https://api.supermemory.ai/v3/memories", {
       method: "POST",
       headers: {
@@ -23,7 +24,7 @@ export async function syncToSupermemory(
 
     if (!res.ok) {
       const body = await res.text();
-      return { success: false, error: body };
+      return { success: false, error: `${res.status}: ${body}` };
     }
 
     return { success: true };

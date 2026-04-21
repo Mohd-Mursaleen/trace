@@ -6,12 +6,13 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DayEditorSheet } from "@/components/DayEditorSheet";
+import { DotGrid } from "@/components/DotGrid";
 import { JournalCalendar } from "@/components/JournalCalendar";
 import { Legend } from "@/components/Legend";
 import { ProfileHero } from "@/components/ProfileHero";
+import { QuoteBanner } from "@/components/QuoteBanner";
 import { useColors } from "@/hooks/useColors";
 import { useJournalStore } from "@/hooks/useJournalStore";
-import { todayISO } from "@/lib/dates";
 
 export default function HomeScreen() {
   const colors = useColors();
@@ -31,30 +32,28 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <DotGrid />
       <StatusBar style="light" />
 
+      {/* Nav header */}
       <View
         style={[
-          styles.topBar,
-          { paddingTop: insets.top + 8, borderBottomColor: "transparent" },
+          styles.nav,
+          {
+            marginTop: insets.top + 8,
+            borderColor: colors.border,
+          },
         ]}
       >
-        <Text style={[styles.brand, { color: colors.text }]}>
-          log<Text style={{ color: colors.accent }}>.</Text>af
+        <Text style={[styles.navBrand, { color: colors.textMuted }]}>
+          log.af
         </Text>
         <Pressable
           onPress={() => router.push("/settings")}
           hitSlop={12}
-          style={({ pressed }) => [
-            styles.iconBtn,
-            {
-              backgroundColor: colors.cardAlt,
-              borderColor: colors.border,
-              opacity: pressed ? 0.7 : 1,
-            },
-          ]}
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
         >
-          <Feather name="settings" size={16} color={colors.text} />
+          <Feather name="settings" size={16} color={colors.textMuted} />
         </Pressable>
       </View>
 
@@ -63,22 +62,24 @@ export default function HomeScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
         showsVerticalScrollIndicator={false}
       >
-        <ProfileHero
-          name={profile.name}
-          photoUri={profile.photoUri}
-          count={index.length}
-          onPress={() => setOpenDate(todayISO())}
-        />
+        <ProfileHero name={profile.name} count={index.length} />
 
-        <View style={styles.taglineWrap}>
-          <Text style={[styles.tagline, { color: colors.textDim }]}>
-            Your days, remembered
-          </Text>
+        <QuoteBanner />
+
+        <View style={{ height: 16 }} />
+
+        {/* Calendar card */}
+        <View
+          style={[
+            styles.calendarCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <JournalCalendar onDayPress={(iso) => setOpenDate(iso)} />
         </View>
-
-        <View style={{ height: 8 }} />
-
-        <JournalCalendar onDayPress={(iso) => setOpenDate(iso)} />
 
         <Legend />
       </ScrollView>
@@ -96,35 +97,28 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  topBar: {
+  nav: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingBottom: 8,
-  },
-  brand: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 18,
-    letterSpacing: -0.4,
-  },
-  iconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 12,
     borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: "rgba(17,17,17,0.9)",
   },
-  taglineWrap: {
-    alignItems: "center",
-    paddingTop: 2,
-    paddingBottom: 4,
-  },
-  tagline: {
+  navBrand: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    letterSpacing: 1.2,
-    textTransform: "lowercase",
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  calendarCard: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: "hidden",
   },
 });

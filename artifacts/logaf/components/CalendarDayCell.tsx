@@ -32,34 +32,43 @@ export function CalendarDayCell({
   const today = isToday(iso);
   const hasPhoto = !!preview;
 
-  const baseRadius = Math.max(8, Math.round(size * 0.22));
+  const baseRadius = Math.max(6, Math.round(size * 0.2));
 
   // --- State resolution ---
-  let bg: string = "transparent";
-  let textColor: string = colors.textDim;
-  let borderColor: string = "transparent";
+  let bg = "transparent";
+  let textColor = colors.textMuted;
+  let borderColor = "transparent";
   let borderWidth = 0;
-  let fontFamily = "Inter_500Medium";
+  let fontFamily = "Inter_400Regular";
   let opacity = 1;
 
   if (future) {
-    textColor = colors.textDim;
-    opacity = 0.35;
+    textColor = colors.textMuted;
+    opacity = 0.3;
   } else if (hasPhoto) {
-    // Image covers bg; number shown top-left in white
-    textColor = "#ffffff";
-    fontFamily = "Inter_600SemiBold";
+    // Image fills cell; number shown bottom-right
+    textColor = today ? colors.accent : "rgba(255,255,255,0.9)";
+    fontFamily = today ? "Inter_700Bold" : "Inter_500Medium";
+    if (today) {
+      borderColor = colors.accent;
+      borderWidth = 1.5;
+    }
   } else if (hasText) {
     bg = colors.accentDim;
-    textColor = colors.accent;
-    fontFamily = "Inter_600SemiBold";
+    textColor = today ? colors.accent : colors.foreground;
+    fontFamily = today ? "Inter_700Bold" : "Inter_500Medium";
+    if (today) {
+      borderColor = colors.accent;
+      borderWidth = 1.5;
+    }
   } else if (today) {
     borderColor = colors.accent;
     borderWidth = 1.5;
     textColor = colors.accent;
     fontFamily = "Inter_700Bold";
   } else {
-    textColor = colors.textDim;
+    textColor = colors.textMuted;
+    fontFamily = "Inter_400Regular";
   }
 
   const cell = (
@@ -84,30 +93,33 @@ export function CalendarDayCell({
             contentFit="cover"
             transition={150}
           />
+          {/* Subtle dark overlay — bg-black/10 */}
           <View
             style={[
               StyleSheet.absoluteFill,
               {
                 borderRadius: baseRadius - 1,
-                backgroundColor: "rgba(0,0,0,0.32)",
+                backgroundColor: "rgba(0,0,0,0.12)",
               },
             ]}
           />
         </>
       ) : null}
 
+      {/* Accent dot for text-only entries — centered below number */}
       {hasText && !hasPhoto ? (
         <View style={styles.dotWrap} pointerEvents="none">
           <View style={[styles.dot, { backgroundColor: colors.accent }]} />
         </View>
       ) : null}
 
+      {/* Day number */}
       {hasPhoto ? (
-        // Top-left day number for photo cells
+        // Bottom-right for photo cells
         <Text
           style={[
-            styles.numTopLeft,
-            { color: textColor, fontSize, fontFamily, opacity },
+            styles.numBottomRight,
+            { color: textColor, fontSize, fontFamily },
           ]}
         >
           {dayNum}
@@ -152,10 +164,10 @@ const styles = StyleSheet.create({
   num: {
     letterSpacing: 0.2,
   },
-  numTopLeft: {
+  numBottomRight: {
     position: "absolute",
-    top: 4,
-    left: 5,
+    bottom: 3,
+    right: 5,
     letterSpacing: 0.2,
   },
   dotWrap: {

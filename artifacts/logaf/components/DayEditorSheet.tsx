@@ -95,14 +95,19 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
       });
 
       // Supermemory sync after successful save
-      const profile = await loadProfile();
-      if (profile.supermemoryEnabled && profile.supermemoryKey && trimmedText.trim()) {
-        const result = await syncToSupermemory(profile.supermemoryKey, date, trimmedText);
-        if (result.success) {
-          showToast("Memory synced ✦ your agent gets smarter");
-        } else {
-          showToast("Sync failed — saved locally", "error");
+      try {
+        const profile = await loadProfile();
+        if (profile.supermemoryEnabled && profile.supermemoryKey?.trim() && trimmedText.trim()) {
+          const result = await syncToSupermemory(profile.supermemoryKey, date, trimmedText);
+          console.log("Supermemory sync:", result);
+          if (result.success) {
+            showToast("Memory synced ✦ your agent gets smarter");
+          } else {
+            showToast("Sync failed — saved locally", "error");
+          }
         }
+      } catch (e) {
+        console.warn("Supermemory sync failed silently", e);
       }
     }
     setSaving(false);
