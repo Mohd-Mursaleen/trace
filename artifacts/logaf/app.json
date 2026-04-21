@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "log.af",
+    "slug": "logaf",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "logaf",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a0b"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "af.log.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "log.af uses the microphone to record voice notes that become part of your journal.",
+        "NSCameraUsageDescription": "log.af uses the camera to attach photos to your journal entries.",
+        "NSPhotoLibraryUsageDescription": "log.af accesses your photo library to attach photos to your journal entries."
+      }
+    },
+    "android": {
+      "package": "af.log.app",
+      "permissions": ["RECORD_AUDIO", "CAMERA", "READ_MEDIA_IMAGES"]
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      "expo-audio",
+      "expo-image-picker"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
