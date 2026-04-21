@@ -36,6 +36,10 @@ function RootLayoutNav() {
         name="settings"
         options={{ presentation: "card", animation: "slide_from_right" }}
       />
+      <Stack.Screen
+        name="privacy"
+        options={{ presentation: "card", animation: "slide_from_right" }}
+      />
     </Stack>
   );
 }

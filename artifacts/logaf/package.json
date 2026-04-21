@@ -57,6 +57,8 @@
   },
   "dependencies": {
     "expo-audio": "^1.1.1",
-    "expo-file-system": "^19.0.21"
+    "expo-document-picker": "^55.0.13",
+    "expo-file-system": "^19.0.21",
+    "expo-sharing": "^55.0.18"
   }
 }

@@ -18,17 +18,20 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DotGrid } from "@/components/DotGrid";
+import { SupermemorySetupModal } from "@/components/SupermemorySetupModal";
 import { useColors } from "@/hooks/useColors";
 import { useJournalStore } from "@/hooks/useJournalStore";
+import { exportData, importData, type ConflictResolution } from "@/lib/exportImport";
 
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { profile, updateProfile, copyImageToLocal } = useJournalStore();
+  const { profile, updateProfile, copyImageToLocal, refresh } = useJournalStore();
 
   const [name, setName] = useState(profile.name);
-  const [smEnabled, setSmEnabled] = useState(profile.supermemoryEnabled);
-  const [smKey, setSmKey] = useState(profile.supermemoryKey);
+  const [smModalVisible, setSmModalVisible] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const saveName = async () => {
     await updateProfile({ name: name.trim() });
@@ -55,12 +58,83 @@ export default function SettingsScreen() {
     await updateProfile({ photoUri: "" });
   };
 
-  const saveSupermemory = async () => {
-    await updateProfile({
-      supermemoryEnabled: smEnabled && smKey.trim().length > 0,
-      supermemoryKey: smKey.trim(),
-    });
-    Alert.alert("Saved", "Supermemory settings updated.");
+  // --- Supermemory toggle ---
+  // If turning on: open the setup modal. If turning off: disable immediately.
+  const handleSmToggle = async () => {
+    if (profile.supermemoryEnabled) {
+      await updateProfile({ supermemoryEnabled: false });
+    } else {
+      setSmModalVisible(true);
+    }
+  };
+
+  // Called when the setup modal finishes — with a verified key or null (cancelled)
+  const handleSmDone = async (key: string | null) => {
+    setSmModalVisible(false);
+    if (key) {
+      await updateProfile({ supermemoryEnabled: true, supermemoryKey: key });
+    }
+    // key === null means user cancelled — leave toggle off
+  };
+
+  // --- Export ---
+  const handleExport = async () => {
+    setExporting(true);
+    const result = await exportData();
+    setExporting(false);
+    if (!result.success && result.error !== "cancelled") {
+      Alert.alert("Export failed", result.error ?? "Unknown error");
+    }
+  };
+
+  // --- Import ---
+  const handleImport = async () => {
+    setImporting(true);
+
+    const onConflict = (conflictCount: number): Promise<ConflictResolution> =>
+      new Promise((resolve) => {
+        Alert.alert(
+          "Conflicts found",
+          `${conflictCount} date${conflictCount > 1 ? "s" : ""} in the backup already exist in your journal. What would you like to do?`,
+          [
+            {
+              text: "Keep current",
+              onPress: () => resolve("keep"),
+            },
+            {
+              text: "Replace with backup",
+              style: "destructive",
+              onPress: () => resolve("replace"),
+            },
+            {
+              text: "Cancel",
+              style: "cancel",
+              onPress: () => resolve("cancel"),
+            },
+          ],
+        );
+      });
+
+    const result = await importData(onConflict);
+    setImporting(false);
+
+    if (result.error === "cancelled") return;
+
+    if (!result.success) {
+      Alert.alert("Import failed", result.error ?? "Unknown error");
+      return;
+    }
+
+    // Refresh the journal index so the calendar reflects imported entries
+    await refresh();
+
+    const msg = [
+      `Imported: ${result.imported} ${result.imported === 1 ? "entry" : "entries"}`,
+      result.skipped ? `Skipped (kept current): ${result.skipped}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    Alert.alert("Import complete", msg);
   };
 
   return (
@@ -95,11 +169,12 @@ export default function SettingsScreen() {
           contentContainerStyle={{
             paddingHorizontal: 20,
             paddingBottom: insets.bottom + 32,
-            gap: 24,
+            gap: 28,
           }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Profile */}
           <Section title="Profile">
             <View style={styles.profileRow}>
               <Pressable
@@ -146,9 +221,7 @@ export default function SettingsScreen() {
             </View>
 
             <View style={{ gap: 8 }}>
-              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
-                Name
-              </Text>
+              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Name</Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
@@ -168,24 +241,32 @@ export default function SettingsScreen() {
             </View>
           </Section>
 
+          {/* Supermemory */}
           <Section title="Supermemory">
             <Text style={[styles.helper, { color: colors.mutedForeground }]}>
-              Turn your journal into a knowledge graph. Free at supermemory.ai
+              Turn your journal into a personal knowledge graph. Your AI agents get smarter every time you write.
             </Text>
 
             <View style={styles.toggleRow}>
-              <Text style={[styles.toggleLabel, { color: colors.text }]}>
-                Enable Supermemory
-              </Text>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={[styles.toggleLabel, { color: colors.text }]}>
+                  Enable Supermemory
+                </Text>
+                {profile.supermemoryEnabled && (
+                  <Text style={[styles.connectedBadge, { color: colors.accent }]}>
+                    ✓ Connected
+                  </Text>
+                )}
+              </View>
               <Pressable
-                onPress={() => setSmEnabled(!smEnabled)}
+                onPress={handleSmToggle}
                 style={({ pressed }) => [
                   styles.toggle,
                   {
-                    backgroundColor: smEnabled
+                    backgroundColor: profile.supermemoryEnabled
                       ? colors.accent
                       : colors.cardHigh,
-                    borderColor: smEnabled
+                    borderColor: profile.supermemoryEnabled
                       ? colors.accent
                       : colors.borderStrong,
                     opacity: pressed ? 0.85 : 1,
@@ -196,95 +277,134 @@ export default function SettingsScreen() {
                   style={[
                     styles.toggleKnob,
                     {
-                      backgroundColor: smEnabled ? "#0a0a0a" : colors.text,
-                      transform: [{ translateX: smEnabled ? 18 : 0 }],
+                      backgroundColor: profile.supermemoryEnabled ? "#0a0a0a" : colors.text,
+                      transform: [{ translateX: profile.supermemoryEnabled ? 18 : 0 }],
                     },
                   ]}
                 />
               </Pressable>
             </View>
 
-            <View style={{ gap: 8 }}>
-              <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>
-                API Key
-              </Text>
-              <TextInput
-                value={smKey}
-                onChangeText={setSmKey}
-                placeholder="Supermemory API key"
-                placeholderTextColor={colors.textDim}
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={[
-                  styles.input,
+            {profile.supermemoryEnabled && (
+              <Pressable
+                onPress={() => setSmModalVisible(true)}
+                style={({ pressed }) => [
+                  styles.reconnectBtn,
                   {
                     backgroundColor: colors.cardAlt,
                     borderColor: colors.border,
-                    color: colors.text,
+                    opacity: pressed ? 0.7 : 1,
                   },
                 ]}
-                selectionColor={colors.accent}
-              />
-              <Text style={[styles.helperSmall, { color: colors.textDim }]}>
-                Get your free key at supermemory.ai
-              </Text>
-            </View>
-
-            <Pressable
-              onPress={saveSupermemory}
-              style={({ pressed }) => [
-                styles.saveBtn,
-                {
-                  backgroundColor: colors.accent,
-                  opacity: pressed ? 0.9 : 1,
-                },
-              ]}
-            >
-              <Text style={[styles.saveText, { color: colors.accentForeground }]}>
-                Save
-              </Text>
-            </Pressable>
+              >
+                <Feather name="refresh-cw" size={13} color={colors.textMuted} />
+                <Text style={[styles.reconnectText, { color: colors.textMuted }]}>
+                  Update API key
+                </Text>
+              </Pressable>
+            )}
           </Section>
 
+          {/* Data */}
+          <Section title="Data">
+            <Text style={[styles.helper, { color: colors.mutedForeground }]}>
+              Export all your entries and photos as a portable backup. Import a previous backup to restore your journal.
+            </Text>
+
+            <View style={styles.dataRow}>
+              <DataButton
+                icon="upload"
+                label={exporting ? "Exporting…" : "Export"}
+                onPress={handleExport}
+                disabled={exporting}
+                colors={colors}
+              />
+              <DataButton
+                icon="download"
+                label={importing ? "Importing…" : "Import"}
+                onPress={handleImport}
+                disabled={importing}
+                colors={colors}
+              />
+            </View>
+
+            <Text style={[styles.helperSmall, { color: colors.textDim }]}>
+              Backup includes all text entries and attached photos. Your profile settings are not included.
+            </Text>
+          </Section>
+
+          {/* About */}
           <Section title="About">
-            <View
-              style={[
+            <Pressable
+              onPress={() => router.push("/privacy")}
+              style={({ pressed }) => [
                 styles.aboutCard,
                 {
                   backgroundColor: colors.cardAlt,
                   borderColor: colors.border,
+                  opacity: pressed ? 0.8 : 1,
                 },
               ]}
             >
-              <Feather name="lock" size={14} color={colors.accent} />
+              <Feather name="shield" size={14} color={colors.accent} />
               <Text style={[styles.helper, { color: colors.mutedForeground, flex: 1 }]}>
-                All journal data is stored locally on this device.
+                All journal data is stored locally on this device.{" "}
+                <Text style={{ color: colors.accent }}>Read our privacy policy →</Text>
               </Text>
-            </View>
+            </Pressable>
             <Text style={[styles.helperSmall, { color: colors.textDim }]}>
               log.af · v1.0.0
             </Text>
           </Section>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <SupermemorySetupModal visible={smModalVisible} onDone={handleSmDone} />
     </View>
   );
 }
+
+// --- Sub-components ---
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const colors = useColors();
   return (
     <View style={{ gap: 14 }}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          { color: colors.mutedForeground },
-        ]}
-      >
-        {title}
-      </Text>
+      <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>{title}</Text>
       {children}
     </View>
+  );
+}
+
+function DataButton({
+  icon,
+  label,
+  onPress,
+  disabled,
+  colors,
+}: {
+  icon: React.ComponentProps<typeof Feather>["name"];
+  label: string;
+  onPress: () => void;
+  disabled: boolean;
+  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.dataBtn,
+        {
+          backgroundColor: colors.cardAlt,
+          borderColor: colors.border,
+          opacity: pressed || disabled ? 0.6 : 1,
+        },
+      ]}
+    >
+      <Feather name={icon} size={16} color={colors.text} />
+      <Text style={[styles.dataBtnText, { color: colors.text }]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -366,10 +486,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    gap: 12,
   },
   toggleLabel: {
     fontFamily: "Inter_500Medium",
     fontSize: 14,
+  },
+  connectedBadge: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    letterSpacing: 0.2,
   },
   toggle: {
     width: 44,
@@ -384,16 +510,37 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
   },
-  saveBtn: {
+  reconnectBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
     alignSelf: "flex-start",
-    paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 999,
+    borderWidth: 1,
   },
-  saveText: {
-    fontFamily: "Inter_600SemiBold",
+  reconnectText: {
+    fontFamily: "Inter_400Regular",
     fontSize: 13,
-    letterSpacing: 0.2,
+  },
+  dataRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  dataBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  dataBtnText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
   },
   aboutCard: {
     flexDirection: "row",
