@@ -23,14 +23,14 @@ type Props = {
   onDayPress: (iso: string) => void;
 };
 
-type View = "month" | "year";
+type CalView = "month" | "year";
 
 export function JournalCalendar({ onDayPress }: Props) {
   const colors = useColors();
   const { index } = useJournalStore();
   const today = new Date();
 
-  const [view, setView] = useState<View>("month");
+  const [view, setView] = useState<CalView>("month");
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
 
@@ -48,7 +48,7 @@ export function JournalCalendar({ onDayPress }: Props) {
         view={view}
         year={year}
         month={month}
-        onToggle={() => setView(view === "month" ? "year" : "month")}
+        onViewChange={setView}
         onPrev={() => {
           if (view === "month") {
             if (month === 0) {
@@ -102,60 +102,110 @@ function Header({
   view,
   year,
   month,
-  onToggle,
+  onViewChange,
   onPrev,
   onNext,
 }: {
-  view: View;
+  view: CalView;
   year: number;
   month: number;
-  onToggle: () => void;
+  onViewChange: (v: CalView) => void;
   onPrev: () => void;
   onNext: () => void;
 }) {
   const colors = useColors();
   const title = view === "month" ? `${MONTHS[month]} ${year}` : `${year}`;
+
   return (
     <View style={styles.header}>
-      <Pressable
-        onPress={onPrev}
-        hitSlop={10}
-        style={({ pressed }) => [
-          styles.iconBtn,
-          {
-            backgroundColor: colors.cardAlt,
-            borderColor: colors.border,
-            opacity: pressed ? 0.7 : 1,
-          },
-        ]}
-      >
-        <Feather name="chevron-left" size={16} color={colors.text} />
-      </Pressable>
+      <View style={styles.headerRow}>
+        <Pressable
+          onPress={onPrev}
+          hitSlop={10}
+          style={({ pressed }) => [
+            styles.iconBtn,
+            {
+              backgroundColor: colors.cardAlt,
+              borderColor: colors.border,
+              opacity: pressed ? 0.7 : 1,
+            },
+          ]}
+        >
+          <Feather name="chevron-left" size={16} color={colors.text} />
+        </Pressable>
 
-      <Pressable
-        onPress={onToggle}
-        style={({ pressed }) => [styles.titleBtn, { opacity: pressed ? 0.6 : 1 }]}
-      >
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.toggleHint, { color: colors.mutedForeground }]}>
-          {view === "month" ? "month" : "year"}
-        </Text>
-      </Pressable>
 
-      <Pressable
-        onPress={onNext}
-        hitSlop={10}
-        style={({ pressed }) => [
-          styles.iconBtn,
-          {
-            backgroundColor: colors.cardAlt,
-            borderColor: colors.border,
-            opacity: pressed ? 0.7 : 1,
-          },
-        ]}
-      >
-        <Feather name="chevron-right" size={16} color={colors.text} />
-      </Pressable>
+        <Pressable
+          onPress={onNext}
+          hitSlop={10}
+          style={({ pressed }) => [
+            styles.iconBtn,
+            {
+              backgroundColor: colors.cardAlt,
+              borderColor: colors.border,
+              opacity: pressed ? 0.7 : 1,
+            },
+          ]}
+        >
+          <Feather name="chevron-right" size={16} color={colors.text} />
+        </Pressable>
+      </View>
+
+      <View style={styles.toggleRow}>
+        <View
+          style={[
+            styles.togglePill,
+            {
+              backgroundColor: colors.cardAlt,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Pressable
+            onPress={() => onViewChange("month")}
+            style={[
+              styles.toggleTab,
+              view === "month" && { backgroundColor: colors.accent },
+            ]}
+          >
+            <Text
+              style={[
+                styles.toggleTabText,
+                {
+                  color:
+                    view === "month" ? colors.accentForeground : colors.mutedForeground,
+                  fontFamily:
+                    view === "month" ? "Inter_600SemiBold" : "Inter_400Regular",
+                },
+              ]}
+            >
+              Monthly
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => onViewChange("year")}
+            style={[
+              styles.toggleTab,
+              view === "year" && { backgroundColor: colors.accent },
+            ]}
+          >
+            <Text
+              style={[
+                styles.toggleTabText,
+                {
+                  color:
+                    view === "year" ? colors.accentForeground : colors.mutedForeground,
+                  fontFamily:
+                    view === "year" ? "Inter_600SemiBold" : "Inter_400Regular",
+                },
+              ]}
+            >
+              Yearly
+            </Text>
+          </Pressable>
+        </View>
+      </View>
     </View>
   );
 }
@@ -289,11 +339,15 @@ const styles = StyleSheet.create({
     maxWidth: 600,
   },
   header: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 10,
+    gap: 12,
+  },
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
   },
   iconBtn: {
     width: 32,
@@ -303,26 +357,33 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  titleBtn: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 8,
-  },
   title: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 17,
     letterSpacing: -0.3,
   },
-  toggleHint: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    letterSpacing: 0.6,
-    textTransform: "lowercase",
+  toggleRow: {
+    alignItems: "center",
+  },
+  togglePill: {
+    flexDirection: "row",
+    borderRadius: 999,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  toggleTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  toggleTabText: {
+    fontSize: 13,
+    letterSpacing: 0.1,
   },
   weekdayRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingBottom: 8,
+    paddingTop: 4,
   },
   weekday: {
     fontFamily: "Inter_500Medium",

@@ -16,11 +16,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ImageStrip } from "@/components/ImageStrip";
+import { Toast } from "@/components/Toast";
 import { VoiceRecorderButton } from "@/components/VoiceRecorderButton";
 import { useColors } from "@/hooks/useColors";
 import { useJournalStore } from "@/hooks/useJournalStore";
 import { formatLongDate } from "@/lib/dates";
+import { syncToSupermemory } from "@/lib/supermemory";
 import type { JournalEntry } from "@/lib/storage";
+import { loadProfile } from "@/lib/storage";
 
 type Props = {
   date: string | null;
@@ -39,7 +42,12 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const dirtyRef = useRef(false);
+
+  function showToast(message: string, type: "success" | "error" = "success") {
+    setToast({ message, type });
+  }
 
   useEffect(() => {
     if (!visible || !date) return;
@@ -64,6 +72,7 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
     setImages([]);
     setOriginalEntry(null);
     setSavedFlash(false);
+    setToast(null);
     onClose();
   }, [onClose]);
 
@@ -84,6 +93,17 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
         createdAt: originalEntry?.createdAt ?? new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
+
+      // Supermemory sync after successful save
+      const profile = await loadProfile();
+      if (profile.supermemoryEnabled && profile.supermemoryKey && trimmedText.trim()) {
+        const result = await syncToSupermemory(profile.supermemoryKey, date, trimmedText);
+        if (result.success) {
+          showToast("Memory synced ✦ your agent gets smarter");
+        } else {
+          showToast("Sync failed — saved locally", "error");
+        }
+      }
     }
     setSaving(false);
     setSavedFlash(true);
@@ -165,26 +185,20 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
               style={({ pressed }) => [
                 styles.saveBtn,
                 {
-                  backgroundColor: savedFlash
-                    ? colors.accent
-                    : colors.accentSoft,
+                  backgroundColor: colors.accent,
                   opacity: pressed ? 0.85 : saving || loading ? 0.6 : 1,
                 },
               ]}
             >
               {saving ? (
-                <ActivityIndicator size="small" color={colors.accent} />
+                <ActivityIndicator size="small" color={colors.accentForeground} />
               ) : savedFlash ? (
                 <Feather name="check" size={14} color={colors.accentForeground} />
               ) : null}
               <Text
                 style={[
                   styles.saveText,
-                  {
-                    color: savedFlash
-                      ? colors.accentForeground
-                      : colors.accent,
-                  },
+                  { color: colors.accentForeground },
                 ]}
               >
                 {savedFlash ? "Saved" : "Save"}
@@ -245,6 +259,15 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
             </ScrollView>
           )}
         </KeyboardAvoidingView>
+
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            visible={!!toast}
+            onHide={() => setToast(null)}
+          />
+        )}
       </View>
     </Modal>
   );
@@ -284,13 +307,13 @@ const styles = StyleSheet.create({
   dateIso: {
     fontFamily: "Inter_400Regular",
     fontSize: 11,
-    letterSpacing: 0.6,
+    letterSpacing: 0.8,
   },
   saveBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
   },

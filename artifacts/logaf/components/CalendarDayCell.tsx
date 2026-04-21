@@ -31,29 +31,35 @@ export function CalendarDayCell({
   const future = isFuture(iso);
   const today = isToday(iso);
   const hasPhoto = !!preview;
-  const logged = hasPhoto || hasText;
 
   const baseRadius = Math.max(8, Math.round(size * 0.22));
 
+  // --- State resolution ---
   let bg: string = "transparent";
   let textColor: string = colors.textDim;
   let borderColor: string = "transparent";
   let borderWidth = 0;
+  let fontFamily = "Inter_500Medium";
+  let opacity = 1;
 
   if (future) {
     textColor = colors.textDim;
-  } else if (logged && hasPhoto) {
-    textColor = "#fff";
-  } else if (logged) {
-    bg = colors.accentSoft;
+    opacity = 0.35;
+  } else if (hasPhoto) {
+    // Image covers bg; number shown top-left in white
+    textColor = "#ffffff";
+    fontFamily = "Inter_600SemiBold";
+  } else if (hasText) {
+    bg = colors.accentDim;
     textColor = colors.accent;
-  } else {
-    textColor = colors.mutedForeground;
-  }
-
-  if (today) {
+    fontFamily = "Inter_600SemiBold";
+  } else if (today) {
     borderColor = colors.accent;
     borderWidth = 1.5;
+    textColor = colors.accent;
+    fontFamily = "Inter_700Bold";
+  } else {
+    textColor = colors.textDim;
   }
 
   const cell = (
@@ -90,24 +96,36 @@ export function CalendarDayCell({
         </>
       ) : null}
 
-      {logged && !hasPhoto ? (
-        <View
-          style={[styles.dot, { backgroundColor: colors.accent }]}
-          pointerEvents="none"
-        />
+      {hasText && !hasPhoto ? (
+        <View style={styles.dotWrap} pointerEvents="none">
+          <View style={[styles.dot, { backgroundColor: colors.accent }]} />
+        </View>
       ) : null}
 
-      <Text
-        style={[
-          styles.num,
-          { color: textColor, fontSize, opacity: future ? 0.35 : 1 },
-        ]}
-      >
-        {dayNum}
-      </Text>
+      {hasPhoto ? (
+        // Top-left day number for photo cells
+        <Text
+          style={[
+            styles.numTopLeft,
+            { color: textColor, fontSize, fontFamily, opacity },
+          ]}
+        >
+          {dayNum}
+        </Text>
+      ) : (
+        <Text
+          style={[
+            styles.num,
+            { color: textColor, fontSize, fontFamily, opacity },
+          ]}
+        >
+          {dayNum}
+        </Text>
+      )}
     </View>
   );
 
+  // Future dates are not pressable
   if (future || !onPress) {
     return cell;
   }
@@ -132,15 +150,24 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   num: {
-    fontFamily: "Inter_500Medium",
     letterSpacing: 0.2,
   },
-  dot: {
+  numTopLeft: {
     position: "absolute",
-    top: 6,
-    right: 6,
-    width: 5,
-    height: 5,
-    borderRadius: 3,
+    top: 4,
+    left: 5,
+    letterSpacing: 0.2,
+  },
+  dotWrap: {
+    position: "absolute",
+    bottom: 5,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
 });

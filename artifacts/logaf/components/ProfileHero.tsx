@@ -29,10 +29,10 @@ export function ProfileHero({ name, photoUri, count, onPress }: Props) {
         style={({ pressed }) => [
           styles.avatarWrap,
           {
-            borderColor: colors.borderStrong,
+            borderColor: colors.border,
             backgroundColor: colors.cardAlt,
             opacity: pressed ? 0.85 : 1,
-            transform: [{ scale: pressed ? 0.98 : 1 }],
+            transform: [{ scale: pressed ? 0.97 : 1 }],
           },
         ]}
       >
@@ -45,18 +45,11 @@ export function ProfileHero({ name, photoUri, count, onPress }: Props) {
           />
         ) : (
           <View style={[styles.avatar, styles.avatarPlaceholder]}>
-            <Text style={[styles.initials, { color: colors.textDim }]}>
+            <Text style={[styles.initials, { color: colors.accent }]}>
               {initials(name)}
             </Text>
           </View>
         )}
-        <View
-          style={[
-            styles.glow,
-            { borderColor: colors.accentRing, opacity: 0.45 },
-          ]}
-          pointerEvents="none"
-        />
       </Pressable>
 
       <Text style={[styles.name, { color: colors.text }]}>{displayName}</Text>
@@ -67,19 +60,19 @@ export function ProfileHero({ name, photoUri, count, onPress }: Props) {
   );
 }
 
-const SIZE = 116;
+const SIZE = 88;
 
 const styles = StyleSheet.create({
   wrap: {
     alignItems: "center",
-    gap: 10,
     paddingVertical: 12,
+    gap: 0,
   },
   avatarWrap: {
     width: SIZE,
     height: SIZE,
     borderRadius: SIZE / 2,
-    borderWidth: 1,
+    borderWidth: 2,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
@@ -94,28 +87,20 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   initials: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 36,
+    fontFamily: "Inter_700Bold",
+    fontSize: 28,
     letterSpacing: 1,
-  },
-  glow: {
-    position: "absolute",
-    top: -3,
-    left: -3,
-    right: -3,
-    bottom: -3,
-    borderRadius: SIZE / 2 + 3,
-    borderWidth: 1,
   },
   name: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 18,
     letterSpacing: -0.2,
-    marginTop: 4,
+    marginTop: 12,
   },
   count: {
     fontFamily: "Inter_400Regular",
-    fontSize: 13,
+    fontSize: 12,
     letterSpacing: 0.2,
+    marginTop: 4,
   },
 });

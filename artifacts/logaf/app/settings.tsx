@@ -168,7 +168,7 @@ export default function SettingsScreen() {
 
           <Section title="Supermemory">
             <Text style={[styles.helper, { color: colors.mutedForeground }]}>
-              Turn your journal into a knowledge graph for your future AI agent.
+              Turn your journal into a knowledge graph. Free at supermemory.ai
             </Text>
 
             <View style={styles.toggleRow}>
@@ -194,7 +194,7 @@ export default function SettingsScreen() {
                   style={[
                     styles.toggleKnob,
                     {
-                      backgroundColor: smEnabled ? "#0a0a0b" : colors.text,
+                      backgroundColor: smEnabled ? "#0a0a0a" : colors.text,
                       transform: [{ translateX: smEnabled ? 18 : 0 }],
                     },
                   ]}
