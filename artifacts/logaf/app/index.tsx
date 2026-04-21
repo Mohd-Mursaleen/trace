@@ -9,7 +9,6 @@ import { DayEditorSheet } from "@/components/DayEditorSheet";
 import { DotGrid } from "@/components/DotGrid";
 import { JournalCalendar } from "@/components/JournalCalendar";
 import { Legend } from "@/components/Legend";
-import { ProfileHero } from "@/components/ProfileHero";
 import { QuoteBanner } from "@/components/QuoteBanner";
 import { useColors } from "@/hooks/useColors";
 import { useJournalStore } from "@/hooks/useJournalStore";
@@ -45,16 +44,24 @@ export default function HomeScreen() {
           },
         ]}
       >
-        <Text style={[styles.navBrand, { color: colors.textMuted }]}>
-          log.af
-        </Text>
-        <Pressable
-          onPress={() => router.push("/settings")}
-          hitSlop={12}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-        >
-          <Feather name="settings" size={16} color={colors.textMuted} />
-        </Pressable>
+        <View style={styles.navLeft}>
+          <Text style={[styles.navBrand, { color: colors.textMuted }]}>log.af</Text>
+          <Text style={[styles.navMemories, { color: colors.textDim }]}>
+            {index.length} {index.length === 1 ? "memory" : "memories"}
+          </Text>
+        </View>
+        <View style={styles.navRight}>
+          <Text style={[styles.navName, { color: colors.text }]}>
+            {profile.name.trim() || "My Journal"}
+          </Text>
+          <Pressable
+            onPress={() => router.push("/settings")}
+            hitSlop={12}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          >
+            <Feather name="settings" size={16} color={colors.textMuted} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView
@@ -62,11 +69,9 @@ export default function HomeScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
         showsVerticalScrollIndicator={false}
       >
-        <ProfileHero name={profile.name} count={index.length} />
-
         <QuoteBanner />
 
-        <View style={{ height: 16 }} />
+        <View style={{ height: 8 }} />
 
         {/* Calendar card */}
         <View
@@ -109,10 +114,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     backgroundColor: "rgba(17,17,17,0.9)",
   },
+  navLeft: {
+    gap: 2,
+  },
   navBrand: {
     fontFamily: "Inter_400Regular",
-    fontSize: 13,
+    fontSize: 12,
     letterSpacing: 0.2,
+  },
+  navMemories: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 10,
+    letterSpacing: 0.3,
+  },
+  navRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  navName: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    letterSpacing: -0.1,
   },
   calendarCard: {
     marginHorizontal: 16,

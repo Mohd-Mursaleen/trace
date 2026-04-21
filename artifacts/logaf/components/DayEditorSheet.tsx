@@ -3,8 +3,8 @@ import * as Haptics from "expo-haptics";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -12,18 +12,22 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BigMicButton } from "@/components/BigMicButton";
 import { ImageStrip } from "@/components/ImageStrip";
 import { Toast } from "@/components/Toast";
-import { VoiceRecorderButton } from "@/components/VoiceRecorderButton";
 import { useColors } from "@/hooks/useColors";
 import { useJournalStore } from "@/hooks/useJournalStore";
 import { formatLongDate } from "@/lib/dates";
-import { syncToSupermemory } from "@/lib/supermemory";
-import type { JournalEntry } from "@/lib/storage";
 import { loadProfile } from "@/lib/storage";
+import type { JournalEntry } from "@/lib/storage";
+import { syncToSupermemory } from "@/lib/supermemory";
+
+const AUTOSAVE_INTERVAL_MS = 5_000;
+const SHEET_RATIO = 0.72;
 
 type Props = {
   date: string | null;
@@ -31,29 +35,88 @@ type Props = {
   onClose: () => void;
 };
 
+type Tab = "write" | "memories";
+
 export function DayEditorSheet({ date, visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
   const { loadEntry, saveEntry, deleteEntry } = useJournalStore();
 
+  const sheetHeight = screenHeight * SHEET_RATIO;
+
+  // --- Animation state ---
+  const translateY = useRef(new Animated.Value(sheetHeight)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const [mounted, setMounted] = useState(false);
+
+  // --- Content state ---
+  const [tab, setTab] = useState<Tab>("write");
   const [text, setText] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [originalEntry, setOriginalEntry] = useState<JournalEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [autoSaved, setAutoSaved] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // Refs to avoid stale closures in interval/async callbacks
   const dirtyRef = useRef(false);
+  const textRef = useRef("");
+  const imagesRef = useRef<string[]>([]);
+  const originalEntryRef = useRef<JournalEntry | null>(null);
+  const dateRef = useRef<string | null>(null);
+  const autoSavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function showToast(message: string, type: "success" | "error" = "success") {
-    setToast({ message, type });
-  }
+  // Keep refs in sync with state
+  useEffect(() => { textRef.current = text; }, [text]);
+  useEffect(() => { imagesRef.current = images; }, [images]);
+  useEffect(() => { originalEntryRef.current = originalEntry; }, [originalEntry]);
+  useEffect(() => { dateRef.current = date; }, [date]);
 
+  // --- Sheet open/close animation ---
+  useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      setTab("write");
+      Animated.parallel([
+        Animated.spring(translateY, {
+          toValue: 0,
+          damping: 20,
+          stiffness: 180,
+          mass: 1,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropOpacity, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(translateY, {
+          toValue: sheetHeight,
+          duration: 280,
+          useNativeDriver: true,
+        }),
+        Animated.timing(backdropOpacity, {
+          toValue: 0,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+      ]).start(() => setMounted(false));
+    }
+  }, [visible, sheetHeight]);
+
+  // --- Load entry when sheet opens ---
   useEffect(() => {
     if (!visible || !date) return;
     let cancelled = false;
     setLoading(true);
     dirtyRef.current = false;
+    setAutoSaved(false);
     (async () => {
       const entry = await loadEntry(date);
       if (cancelled) return;
@@ -62,61 +125,122 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
       setImages(entry?.images ?? []);
       setLoading(false);
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [visible, date, loadEntry]);
 
-  const handleClose = useCallback(() => {
+  // --- Autosave every 5s ---
+  useEffect(() => {
+    if (!visible || loading) return;
+    const interval = setInterval(async () => {
+      if (!dirtyRef.current || !dateRef.current) return;
+      const t = textRef.current;
+      const imgs = imagesRef.current;
+      if (t.trim().length === 0 && imgs.length === 0) return;
+      try {
+        await saveEntry({
+          date: dateRef.current,
+          text: t,
+          images: imgs,
+          previewImage: imgs[0] ?? null,
+          createdAt: originalEntryRef.current?.createdAt ?? new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        dirtyRef.current = false;
+        setAutoSaved(true);
+        if (autoSavedTimerRef.current) clearTimeout(autoSavedTimerRef.current);
+        autoSavedTimerRef.current = setTimeout(() => setAutoSaved(false), 2000);
+      } catch {
+        // Silent — non-critical, Save button still works
+      }
+    }, AUTOSAVE_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [visible, loading, saveEntry]);
+
+  // --- Cleanup helper ---
+  const cleanup = useCallback(() => {
     setText("");
     setImages([]);
     setOriginalEntry(null);
     setSavedFlash(false);
+    setAutoSaved(false);
     setToast(null);
-    onClose();
-  }, [onClose]);
+    if (autoSavedTimerRef.current) clearTimeout(autoSavedTimerRef.current);
+  }, []);
 
+  // --- X / backdrop close: save locally + fire-and-forget Supermemory ---
+  const handleClose = useCallback(async () => {
+    if (dateRef.current && dirtyRef.current) {
+      const t = textRef.current;
+      const imgs = imagesRef.current;
+      const isEmpty = t.trim().length === 0 && imgs.length === 0;
+      if (isEmpty && originalEntryRef.current) {
+        deleteEntry(dateRef.current);
+      } else if (!isEmpty) {
+        const entry: JournalEntry = {
+          date: dateRef.current,
+          text: t,
+          images: imgs,
+          previewImage: imgs[0] ?? null,
+          createdAt: originalEntryRef.current?.createdAt ?? new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        saveEntry(entry);
+        loadProfile().then((profile) => {
+          if (profile.supermemoryEnabled && profile.supermemoryKey?.trim() && t.trim()) {
+            syncToSupermemory(profile.supermemoryKey, dateRef.current!, t).then((result) => {
+              console.log("[supermemory] bg sync on close:", result);
+            });
+          }
+        });
+      }
+    }
+    cleanup();
+    onClose();
+  }, [cleanup, onClose, deleteEntry, saveEntry]);
+
+  // --- Save button: awaits Supermemory, shows toast, closes ---
   const handleSave = useCallback(async () => {
     if (!date) return;
     setSaving(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const trimmedText = text;
-    const isEmpty = trimmedText.trim().length === 0 && images.length === 0;
+    const t = text;
+    const imgs = images;
+    const isEmpty = t.trim().length === 0 && imgs.length === 0;
     if (isEmpty && originalEntry) {
       await deleteEntry(date);
     } else if (!isEmpty) {
       await saveEntry({
         date,
-        text: trimmedText,
-        images,
-        previewImage: images[0] ?? null,
+        text: t,
+        images: imgs,
+        previewImage: imgs[0] ?? null,
         createdAt: originalEntry?.createdAt ?? new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
-
-      // Supermemory sync after successful save
+      dirtyRef.current = false;
       try {
         const profile = await loadProfile();
-        if (profile.supermemoryEnabled && profile.supermemoryKey?.trim() && trimmedText.trim()) {
-          const result = await syncToSupermemory(profile.supermemoryKey, date, trimmedText);
-          console.log("Supermemory sync:", result);
-          if (result.success) {
-            showToast("Memory synced ✦ your agent gets smarter");
-          } else {
-            showToast("Sync failed — saved locally", "error");
-          }
+        if (profile.supermemoryEnabled && profile.supermemoryKey?.trim() && t.trim()) {
+          const result = await syncToSupermemory(profile.supermemoryKey, date, t);
+          console.log("[supermemory] sync on save:", result);
+          setToast(
+            result.success
+              ? { message: "Memory synced ✦ your agent gets smarter", type: "success" }
+              : { message: "Sync failed — saved locally", type: "error" },
+          );
         }
       } catch (e) {
-        console.warn("Supermemory sync failed silently", e);
+        console.warn("[supermemory] unexpected error:", e);
       }
     }
     setSaving(false);
     setSavedFlash(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setTimeout(() => {
-      handleClose();
+      cleanup();
+      onClose();
     }, 380);
-  }, [date, text, images, originalEntry, saveEntry, deleteEntry, handleClose]);
+  }, [date, text, images, originalEntry, saveEntry, deleteEntry, cleanup, onClose]);
 
   const onTextChange = (v: string) => {
     dirtyRef.current = true;
@@ -137,29 +261,43 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
     });
   };
 
+  if (!mounted) return null;
+
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={handleClose}
-      transparent={false}
-    >
-      <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {/* Backdrop */}
+      <Animated.View
+        style={[styles.backdrop, { opacity: backdropOpacity }]}
+        pointerEvents={visible ? "auto" : "none"}
+      >
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+      </Animated.View>
+
+      {/* Sheet */}
+      <Animated.View
+        style={[
+          styles.sheet,
+          {
+            height: sheetHeight,
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            paddingBottom: insets.bottom,
+            transform: [{ translateY }],
+          },
+        ]}
+      >
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
           keyboardVerticalOffset={0}
         >
-          <View
-            style={[
-              styles.header,
-              {
-                borderBottomColor: colors.border,
-                paddingTop: Platform.OS === "ios" ? 14 : insets.top + 10,
-              },
-            ]}
-          >
+          {/* Handle bar */}
+          <View style={styles.handleWrap}>
+            <View style={[styles.handle, { backgroundColor: colors.border }]} />
+          </View>
+
+          {/* Header */}
+          <View style={[styles.header, { borderBottomColor: colors.border }]}>
             <Pressable
               onPress={handleClose}
               hitSlop={10}
@@ -172,16 +310,18 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
                 },
               ]}
             >
-              <Feather name="x" size={16} color={colors.text} />
+              <Feather name="x" size={15} color={colors.text} />
             </Pressable>
 
             <View style={styles.headerCenter}>
-              <Text style={[styles.dateLong, { color: colors.text }]}>
+              <Text style={[styles.dateText, { color: colors.text }]}>
                 {date ? formatLongDate(date) : ""}
               </Text>
-              <Text style={[styles.dateIso, { color: colors.textDim }]}>
-                {date ?? ""}
-              </Text>
+              {autoSaved ? (
+                <Text style={[styles.subText, { color: colors.accent }]}>autosaved ✓</Text>
+              ) : (
+                <Text style={[styles.subText, { color: colors.textSecondary }]}>{date ?? ""}</Text>
+              )}
             </View>
 
             <Pressable
@@ -191,77 +331,64 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
                 styles.saveBtn,
                 {
                   backgroundColor: colors.accent,
-                  opacity: pressed ? 0.85 : saving || loading ? 0.6 : 1,
+                  opacity: pressed ? 0.85 : saving || loading ? 0.5 : 1,
                 },
               ]}
             >
               {saving ? (
-                <ActivityIndicator size="small" color={colors.accentForeground} />
+                <ActivityIndicator size="small" color="#0a0a0a" />
               ) : savedFlash ? (
-                <Feather name="check" size={14} color={colors.accentForeground} />
+                <Feather name="check" size={14} color="#0a0a0a" />
               ) : null}
-              <Text
-                style={[
-                  styles.saveText,
-                  { color: colors.accentForeground },
-                ]}
-              >
-                {savedFlash ? "Saved" : "Save"}
-              </Text>
+              <Text style={styles.saveBtnText}>{savedFlash ? "Saved" : "Save"}</Text>
             </Pressable>
           </View>
 
+          {/* Tab toggle */}
+          <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
+            {(["write", "memories"] as Tab[]).map((t) => (
+              <Pressable
+                key={t}
+                onPress={() => setTab(t)}
+                style={[
+                  styles.tabItem,
+                  tab === t && { borderBottomColor: colors.accent, borderBottomWidth: 2 },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    {
+                      color: tab === t ? colors.accent : colors.textMuted,
+                      fontFamily: tab === t ? "Inter_600SemiBold" : "Inter_400Regular",
+                    },
+                  ]}
+                >
+                  {t === "write" ? "Write" : "Memories"}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Tab content */}
           {loading ? (
             <View style={styles.loadingWrap}>
               <ActivityIndicator color={colors.accent} />
             </View>
+          ) : tab === "write" ? (
+            <WriteTab
+              text={text}
+              onTextChange={onTextChange}
+              onTranscript={appendTranscript}
+              colors={colors}
+            />
           ) : (
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={[
-                styles.content,
-                { paddingBottom: insets.bottom + 24 },
-              ]}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-            >
-              <TextInput
-                value={text}
-                onChangeText={onTextChange}
-                placeholder="What happened today?"
-                placeholderTextColor={colors.textDim}
-                multiline
-                textAlignVertical="top"
-                style={[
-                  styles.textarea,
-                  {
-                    color: colors.text,
-                    fontFamily: "Inter_400Regular",
-                  },
-                ]}
-                selectionColor={colors.accent}
-              />
-
-              <View style={styles.toolbar}>
-                <VoiceRecorderButton onTranscript={appendTranscript} />
-              </View>
-
-              <View
-                style={[
-                  styles.divider,
-                  { backgroundColor: colors.border },
-                ]}
-              />
-
-              <View style={styles.imagesSection}>
-                <Text
-                  style={[styles.sectionLabel, { color: colors.mutedForeground }]}
-                >
-                  Photos
-                </Text>
-                <ImageStrip images={images} onChange={onImagesChange} />
-              </View>
-            </ScrollView>
+            <MemoriesTab
+              images={images}
+              onImagesChange={onImagesChange}
+              colors={colors}
+              insetBottom={0}
+            />
           )}
         </KeyboardAvoidingView>
 
@@ -273,28 +400,117 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
             onHide={() => setToast(null)}
           />
         )}
+      </Animated.View>
+    </View>
+  );
+}
+
+// --- Write tab ---
+function WriteTab({
+  text,
+  onTextChange,
+  onTranscript,
+  colors,
+}: {
+  text: string;
+  onTextChange: (v: string) => void;
+  onTranscript: (t: string) => void;
+  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+}) {
+  return (
+    <View style={styles.writeTab}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.writeScroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <TextInput
+          value={text}
+          onChangeText={onTextChange}
+          placeholder="What happened today?"
+          placeholderTextColor={colors.textDim}
+          multiline
+          textAlignVertical="top"
+          style={[styles.textarea, { color: colors.text }]}
+          selectionColor={colors.accent}
+        />
+      </ScrollView>
+
+      {/* Mic button area — fixed at bottom of write tab */}
+      <View style={[styles.micArea, { borderTopColor: colors.border }]}>
+        <BigMicButton onTranscript={onTranscript} />
       </View>
-    </Modal>
+    </View>
+  );
+}
+
+// --- Memories tab ---
+function MemoriesTab({
+  images,
+  onImagesChange,
+  colors,
+  insetBottom,
+}: {
+  images: string[];
+  onImagesChange: (imgs: string[]) => void;
+  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+  insetBottom: number;
+}) {
+  return (
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={[
+        styles.memoriesScroll,
+        { paddingBottom: insetBottom + 24 },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={[styles.sectionLabel, { color: colors.textMuted }]}>Photos</Text>
+      <ImageStrip images={images} onChange={onImagesChange} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  sheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderLeftWidth: StyleSheet.hairlineWidth,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  handleWrap: {
+    alignItems: "center",
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 12,
   },
   iconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -304,61 +520,81 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 2,
   },
-  dateLong: {
+  dateText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 15,
     letterSpacing: -0.2,
   },
-  dateIso: {
+  subText: {
     fontFamily: "Inter_400Regular",
     fontSize: 11,
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   saveBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 5,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 999,
   },
-  saveText: {
+  saveBtnText: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
+    color: "#0a0a0a",
     letterSpacing: 0.1,
+  },
+  tabBar: {
+    flexDirection: "row",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 11,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  tabText: {
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
   loadingWrap: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  content: {
+  writeTab: {
+    flex: 1,
+  },
+  writeScroll: {
     paddingHorizontal: 20,
-    paddingTop: 18,
-    gap: 18,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   textarea: {
-    minHeight: 220,
+    minHeight: 120,
     fontSize: 17,
     lineHeight: 26,
     letterSpacing: 0.1,
+    fontFamily: "Inter_400Regular",
     paddingVertical: 4,
   },
-  toolbar: {
+  micArea: {
+    borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: 4,
+    paddingBottom: 8,
   },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    width: "100%",
-    marginVertical: 4,
-  },
-  imagesSection: {
-    gap: 10,
+  memoriesScroll: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    gap: 12,
   },
   sectionLabel: {
     fontFamily: "Inter_500Medium",
     fontSize: 11,
     letterSpacing: 1.2,
     textTransform: "uppercase",
+    marginBottom: 4,
   },
 });

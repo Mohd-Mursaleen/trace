@@ -33,10 +33,10 @@ export function DotGrid() {
             position: "absolute",
             left: d.x,
             top: d.y,
-            width: 1,
-            height: 1,
-            borderRadius: 0.5,
-            backgroundColor: "rgba(255,255,255,0.13)",
+            width: 2,
+            height: 2,
+            borderRadius: 1,
+            backgroundColor: "rgba(255,255,255,0.22)",
           }}
         />
       ))}
