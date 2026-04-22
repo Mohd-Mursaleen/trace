@@ -3,12 +3,14 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -78,6 +80,9 @@ export default function Onboarding() {
     setPhotoUri(local);
   };
 
+  // Step 1 CTA is locked until name is entered
+  const ctaDisabled = step === 1 && !name.trim();
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <DotGrid />
@@ -86,6 +91,7 @@ export default function Onboarding() {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
+        {/* Progress dots + skip */}
         <View
           style={[
             styles.topBar,
@@ -113,9 +119,7 @@ export default function Onboarding() {
               hitSlop={12}
               style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
             >
-              <Text
-                style={[styles.skipText, { color: colors.mutedForeground }]}
-              >
+              <Text style={[styles.skipText, { color: colors.mutedForeground }]}>
                 Skip
               </Text>
             </Pressable>
@@ -124,33 +128,26 @@ export default function Onboarding() {
           )}
         </View>
 
+        {/* Body */}
         <View style={styles.body}>
+          {/* Step 0 — welcome */}
           {step === 0 ? (
             <View style={styles.center}>
-              <View
-                style={[
-                  styles.brandMark,
-                  {
-                    borderColor: colors.borderStrong,
-                    backgroundColor: colors.cardAlt,
-                  },
-                ]}
-              >
-                <Text style={[styles.brandMarkText, { color: colors.text }]}>
-                  log<Text style={{ color: colors.accent }}>.</Text>af
-                </Text>
-              </View>
+              <Image
+                source={require("../assets/icon.png")}
+                style={styles.brandMark}
+                contentFit="cover"
+              />
               <Text style={[styles.title, { color: colors.text }]}>
-                Your days, remembered.
+                Your journal. Your agent's memory.
               </Text>
               <Text style={[styles.body1, { color: colors.mutedForeground }]}>
-                Agents are coming. The ones that truly know you will be the most
-                powerful. log.af helps you build that memory — one day at a
-                time, entirely on your phone.
+                Most journals are just archives. This one is different — every entry you write becomes part of a knowledge graph your future AI agents will think from.{"\n\n"}Write today. Your agents remember tomorrow.
               </Text>
             </View>
           ) : null}
 
+          {/* Step 1 — profile (TextInput lives in footer to avoid keyboard overlap) */}
           {step === 1 ? (
             <View style={styles.center}>
               <Pressable
@@ -171,7 +168,7 @@ export default function Onboarding() {
                     contentFit="cover"
                   />
                 ) : (
-                  <Feather name="camera" size={28} color={colors.textDim} />
+                  <Feather name="user" size={40} color={colors.textDim} />
                 )}
               </Pressable>
 
@@ -179,7 +176,7 @@ export default function Onboarding() {
                 onPress={pickPhoto}
                 style={({ pressed }) => ({
                   opacity: pressed ? 0.6 : 1,
-                  marginTop: 14,
+                  marginTop: 10,
                 })}
               >
                 <Text style={[styles.linkText, { color: colors.accent }]}>
@@ -187,87 +184,48 @@ export default function Onboarding() {
                 </Text>
               </Pressable>
 
-              <Text
-                style={[styles.title, { color: colors.text, marginTop: 28 }]}
-              >
+              <Text style={[styles.title, { color: colors.text, marginTop: 24 }]}>
                 Make it yours
               </Text>
               <Text style={[styles.body1, { color: colors.mutedForeground }]}>
                 Add a photo and your name. This lives only on your device.
               </Text>
-
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Your name"
-                placeholderTextColor={colors.textDim}
-                style={[
-                  styles.input,
-                  {
-                    backgroundColor: colors.cardAlt,
-                    borderColor: colors.border,
-                    color: colors.text,
-                  },
-                ]}
-                selectionColor={colors.accent}
-              />
             </View>
           ) : null}
 
+          {/* Step 2 — Supermemory */}
           {step === 2 ? (
-            <View style={styles.center}>
-              {/* Brand mark + Supermemory badge */}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.smScroll}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Logo row: icon ↔ supermemory */}
               <View style={styles.smIconRow}>
-                <View
-                  style={[
-                    styles.brandMark,
-                    {
-                      borderColor: colors.accentRing,
-                      backgroundColor: colors.accentDim,
-                    },
-                  ]}
-                >
-                  <Text style={[styles.brandMarkText, { color: colors.text }]}>
-                    tr<Text style={{ color: colors.accent }}>a</Text>ce
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.smConnector,
-                    { backgroundColor: colors.borderStrong },
-                  ]}
+                <Image
+                  source={require("../assets/icon.png")}
+                  style={styles.smBrandMark}
+                  contentFit="cover"
                 />
-                <View
-                  style={[
-                    styles.smBadge,
-                    {
-                      borderColor: colors.accentRing,
-                      backgroundColor: colors.accentDim,
-                    },
-                  ]}
-                >
-                  <Feather name="zap" size={22} color={colors.accent} />
+                <View style={[styles.smConnector, { backgroundColor: colors.borderStrong }]} />
+                <View style={[styles.smLogoWrap, { borderColor: colors.border }]}>
+                  <Image
+                    source={require("../assets/supermemory.png")}
+                    style={styles.smLogo}
+                    contentFit="contain"
+                  />
                 </View>
               </View>
-              <Text
-                style={[styles.title, { color: colors.text, marginTop: 28 }]}
-              >
+
+              <Text style={[styles.title, { color: colors.text }]}>
                 Build your agent's memory
               </Text>
               <Text style={[styles.body1, { color: colors.mutedForeground }]}>
-                Connect Supermemory to turn your daily logs into a knowledge
-                graph — the foundation your future AI agent will think from.
-                Free to start, totally optional.
+                Every entry you write becomes part of your personal knowledge graph. Your future AI agents think from this.
               </Text>
-              <View
-                style={[
-                  styles.smFeatureRow,
-                  {
-                    borderColor: colors.border,
-                    backgroundColor: colors.cardAlt,
-                  },
-                ]}
-              >
+
+              {/* Feature pills */}
+              <View style={[styles.smFeatureRow, { borderColor: colors.border, backgroundColor: colors.cardAlt }]}>
                 {[
                   { icon: "lock" as const, text: "Your key, your data" },
                   { icon: "cpu" as const, text: "Powers your AI agents" },
@@ -275,91 +233,121 @@ export default function Onboarding() {
                 ].map((f) => (
                   <View key={f.text} style={styles.smFeature}>
                     <Feather name={f.icon} size={13} color={colors.accent} />
-                    <Text
-                      style={[
-                        styles.smFeatureText,
-                        { color: colors.textSecondary },
-                      ]}
-                    >
-                      {f.text}
-                    </Text>
+                    <Text style={[styles.smFeatureText, { color: colors.textSecondary }]}>{f.text}</Text>
                   </View>
                 ))}
               </View>
 
-              <View style={styles.toggleRow}>
-                <Pressable
-                  onPress={() => setSmEnabled(!smEnabled)}
-                  style={({ pressed }) => [
-                    styles.toggle,
-                    {
-                      backgroundColor: smEnabled
-                        ? colors.accent
-                        : colors.cardHigh,
-                      borderColor: smEnabled
-                        ? colors.accent
-                        : colors.borderStrong,
-                      opacity: pressed ? 0.85 : 1,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.toggleKnob,
-                      {
-                        backgroundColor: smEnabled ? "#0a0a0b" : colors.text,
-                        transform: [{ translateX: smEnabled ? 18 : 0 }],
-                      },
+              {/* How to get your key */}
+              <View style={[styles.stepsCard, { backgroundColor: colors.cardAlt, borderColor: colors.border }]}>
+                <Text style={[styles.stepsTitle, { color: colors.text }]}>How to connect</Text>
+
+                <SmStep number="1" colors={colors}>
+                  <Text style={[styles.stepText, { color: colors.textSecondary }]}>
+                    Open the Supermemory console and create a free account.
+                  </Text>
+                  <Pressable
+                    onPress={() => Linking.openURL("https://console.supermemory.ai/keys?create=false")}
+                    style={({ pressed }) => [
+                      styles.openBtn,
+                      { backgroundColor: colors.accentDim, borderColor: colors.accentRing, opacity: pressed ? 0.7 : 1 },
                     ]}
-                  />
-                </Pressable>
-                <Text style={[styles.toggleLabel, { color: colors.text }]}>
-                  Connect Supermemory
-                </Text>
+                  >
+                    <Feather name="external-link" size={13} color={colors.accent} />
+                    <Text style={[styles.openBtnText, { color: colors.accent }]}>
+                      Open Supermemory Console
+                    </Text>
+                  </Pressable>
+                </SmStep>
+
+                <SmStep number="2" colors={colors}>
+                  <Text style={[styles.stepText, { color: colors.textSecondary }]}>
+                    In the Keys section, tap{" "}
+                    <Text style={{ color: colors.text }}>"Create key"</Text>. Copy the key that appears.
+                  </Text>
+                </SmStep>
+
+                <SmStep number="3" colors={colors} last>
+                  <Text style={[styles.stepText, { color: colors.textSecondary }]}>
+                    Come back here and paste it below.
+                  </Text>
+                </SmStep>
               </View>
 
-              {smEnabled ? (
-                <>
-                  <TextInput
-                    value={smKey}
-                    onChangeText={setSmKey}
-                    placeholder="Supermemory API key"
-                    placeholderTextColor={colors.textDim}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    style={[
-                      styles.input,
-                      {
-                        backgroundColor: colors.cardAlt,
-                        borderColor: colors.border,
-                        color: colors.text,
-                      },
-                    ]}
-                    selectionColor={colors.accent}
-                  />
-                  <Text style={[styles.helper, { color: colors.textDim }]}>
-                    Get your free key at supermemory.ai
-                  </Text>
-                </>
-              ) : null}
-            </View>
+              {/* Key input */}
+              <TextInput
+                value={smKey}
+                onChangeText={(v) => { setSmKey(v); setSmEnabled(v.trim().length > 0); }}
+                placeholder="Paste your API key here…"
+                placeholderTextColor={colors.textDim}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: colors.cardAlt,
+                    borderColor: smKey.trim() ? colors.accentRing : colors.border,
+                    color: colors.text,
+                    width: "100%",
+                    maxWidth: 400,
+                  },
+                ]}
+                selectionColor={colors.accent}
+              />
+              {smKey.trim() ? (
+                <Text style={[styles.helper, { color: colors.accent }]}>
+                  ✓ Key will be saved when you continue
+                </Text>
+              ) : (
+                <Text style={[styles.helper, { color: colors.textDim }]}>
+                  Optional — you can also add this later in Settings
+                </Text>
+              )}
+            </ScrollView>
           ) : null}
         </View>
 
+        {/* Footer — TextInput for step 1 lives here so KAV pushes it above keyboard */}
         <View
           style={[
             styles.footer,
             { paddingBottom: insets.bottom + 18, paddingHorizontal: 24 },
           ]}
         >
+          {step === 1 && (
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder="Your name"
+              placeholderTextColor={colors.textDim}
+              style={[
+                styles.input,
+                styles.nameInput,
+                {
+                  backgroundColor: colors.cardAlt,
+                  borderColor: name.trim() ? colors.accentRing : colors.border,
+                  color: colors.text,
+                },
+              ]}
+              selectionColor={colors.accent}
+            />
+          )}
           <Pressable
-            onPress={next}
+            onPress={ctaDisabled ? undefined : next}
             style={({ pressed }) => [
               styles.cta,
-              { backgroundColor: colors.accent, opacity: pressed ? 0.9 : 1 },
+              {
+                backgroundColor: ctaDisabled ? colors.cardHigh : colors.accent,
+                opacity: pressed && !ctaDisabled ? 0.9 : 1,
+              },
             ]}
           >
-            <Text style={[styles.ctaText, { color: colors.accentForeground }]}>
+            <Text
+              style={[
+                styles.ctaText,
+                { color: ctaDisabled ? colors.textDim : colors.accentForeground },
+              ]}
+            >
               {step === 0
                 ? "Get started"
                 : step === 2
@@ -369,6 +357,41 @@ export default function Onboarding() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+function SmStep({
+  number,
+  children,
+  colors,
+  last = false,
+}: {
+  number: string;
+  children: React.ReactNode;
+  colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+  last?: boolean;
+}) {
+  return (
+    <View
+      style={[
+        styles.smStepRow,
+        !last && {
+          paddingBottom: 14,
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderBottomColor: "rgba(255,255,255,0.06)",
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.smStepBadge,
+          { backgroundColor: colors.accentDim, borderColor: colors.accentRing },
+        ]}
+      >
+        <Text style={[styles.smStepNum, { color: colors.accent }]}>{number}</Text>
+      </View>
+      <View style={styles.smStepBody}>{children}</View>
     </View>
   );
 }
@@ -404,27 +427,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 14,
   },
+  // Step 0 — large hero icon
   brandMark: {
-    width: 84,
-    height: 84,
-    borderRadius: 22,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 252,
+    height: 252,
+    borderRadius: 66,
     marginBottom: 24,
+    overflow: "hidden",
   },
-  brandMarkText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 22,
-    letterSpacing: -0.6,
-  },
-  iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
+  // Step 2 — small icon in logo row
+  smBrandMark: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    overflow: "hidden",
   },
   smIconRow: {
     flexDirection: "row",
@@ -432,17 +448,24 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   smConnector: {
-    width: 32,
+    width: 28,
     height: 2,
     borderRadius: 1,
+    marginHorizontal: 4,
   },
-  smBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+  // Container for supermemory.png (has light background)
+  smLogoWrap: {
+    backgroundColor: "#f5f6f8",
+    borderRadius: 12,
     borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     alignItems: "center",
     justifyContent: "center",
+  },
+  smLogo: {
+    width: 110,
+    height: 28,
   },
   smFeatureRow: {
     flexDirection: "row",
@@ -450,7 +473,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    gap: 0,
     justifyContent: "space-between",
     width: "100%",
     maxWidth: 360,
@@ -500,30 +522,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     fontFamily: "Inter_400Regular",
     fontSize: 15,
-    marginTop: 18,
+    marginTop: 0,
   },
-  toggleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginTop: 22,
-  },
-  toggle: {
-    width: 44,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 1,
-    padding: 2,
-    justifyContent: "center",
-  },
-  toggleKnob: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-  },
-  toggleLabel: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 14,
+  nameInput: {
+    // no extra top margin — gap comes from footer's gap
   },
   linkText: {
     fontFamily: "Inter_500Medium",
@@ -537,6 +539,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingTop: 12,
+    gap: 12,
   },
   cta: {
     paddingVertical: 15,
@@ -547,5 +550,66 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 15.5,
     letterSpacing: 0.1,
+  },
+  smScroll: {
+    alignItems: "center",
+    gap: 16,
+    paddingBottom: 8,
+  },
+  stepsCard: {
+    width: "100%",
+    maxWidth: 400,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 14,
+  },
+  stepsTitle: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    letterSpacing: 0.2,
+    marginBottom: 2,
+  },
+  smStepRow: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "flex-start",
+  },
+  smStepBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  smStepNum: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+  },
+  smStepBody: {
+    flex: 1,
+    gap: 8,
+  },
+  stepText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  openBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    alignSelf: "flex-start",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  openBtnText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
   },
 });

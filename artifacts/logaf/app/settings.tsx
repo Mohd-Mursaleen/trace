@@ -3,6 +3,7 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useState } from "react";
 import {
   Alert,
@@ -355,6 +356,19 @@ export default function SettingsScreen() {
             <Text style={[styles.helperSmall, { color: colors.textDim }]}>
               log.af · v1.0.0
             </Text>
+
+            {/* DEV ONLY — remove before shipping */}
+            {__DEV__ && (
+              <Pressable
+                onPress={async () => {
+                  await AsyncStorage.clear();
+                  await router.replace("/onboarding");
+                }}
+                style={{ padding: 16, alignItems: "center" }}
+              >
+                <Text style={{ color: "red", fontSize: 12 }}>Reset app (dev only)</Text>
+              </Pressable>
+            )}
           </Section>
         </ScrollView>
       </KeyboardAvoidingView>
