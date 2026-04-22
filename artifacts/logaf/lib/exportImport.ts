@@ -3,7 +3,7 @@
  * Images are embedded as base64 strings so the file is fully self-contained.
  */
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 
 import { loadEntry, loadIndex, saveEntry } from "@/lib/storage";

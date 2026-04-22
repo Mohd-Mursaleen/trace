@@ -17,6 +17,7 @@ import {
   View,
 } from "react-native";
 
+import { SupermemoryLogo } from "@/components/SupermemoryLogo";
 import { useColors } from "@/hooks/useColors";
 import { validateSupermemoryKey } from "@/lib/supermemory";
 
@@ -117,9 +118,7 @@ export function SupermemorySetupModal({ visible, onDone }: Props) {
           >
             <Feather name="x" size={15} color={colors.text} />
           </Pressable>
-          <Text style={[styles.title, { color: colors.text }]}>
-            Connect Supermemory
-          </Text>
+          <SupermemoryLogo color={colors.text} scale={0.72} />
           <View style={{ width: 32 }} />
         </View>
 

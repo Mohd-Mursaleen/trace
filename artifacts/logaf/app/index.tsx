@@ -45,14 +45,14 @@ export default function HomeScreen() {
         ]}
       >
         <View style={styles.navLeft}>
-          <Text style={[styles.navBrand, { color: colors.textMuted }]}>log.af</Text>
-          <Text style={[styles.navMemories, { color: colors.textDim }]}>
-            {index.length} {index.length === 1 ? "memory" : "memories"}
+          <Text style={[styles.navBrand, { color: colors.text }]}>trace</Text>
+          <Text style={[styles.navMemories, { color: colors.textSecondary }]}>
+            {index.length} {index.length === 1 ? "memory" : "memories"} logged
           </Text>
         </View>
         <View style={styles.navRight}>
           <Text style={[styles.navName, { color: colors.text }]}>
-            {profile.name.trim() || "My Journal"}
+            {profile.name.trim() || "Traveller"}
           </Text>
           <Pressable
             onPress={() => router.push("/settings")}
@@ -118,14 +118,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   navBrand: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 12,
-    letterSpacing: 0.2,
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    letterSpacing: -0.1,
   },
   navMemories: {
     fontFamily: "Inter_400Regular",
-    fontSize: 10,
-    letterSpacing: 0.3,
+    fontSize: 11,
+    letterSpacing: 0.1,
   },
   navRight: {
     flexDirection: "row",

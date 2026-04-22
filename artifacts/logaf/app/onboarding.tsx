@@ -113,7 +113,9 @@ export default function Onboarding() {
               hitSlop={12}
               style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
             >
-              <Text style={[styles.skipText, { color: colors.mutedForeground }]}>
+              <Text
+                style={[styles.skipText, { color: colors.mutedForeground }]}
+              >
                 Skip
               </Text>
             </Pressable>
@@ -128,7 +130,10 @@ export default function Onboarding() {
               <View
                 style={[
                   styles.brandMark,
-                  { borderColor: colors.borderStrong, backgroundColor: colors.cardAlt },
+                  {
+                    borderColor: colors.borderStrong,
+                    backgroundColor: colors.cardAlt,
+                  },
                 ]}
               >
                 <Text style={[styles.brandMarkText, { color: colors.text }]}>
@@ -182,7 +187,9 @@ export default function Onboarding() {
                 </Text>
               </Pressable>
 
-              <Text style={[styles.title, { color: colors.text, marginTop: 28 }]}>
+              <Text
+                style={[styles.title, { color: colors.text, marginTop: 28 }]}
+              >
                 Make it yours
               </Text>
               <Text style={[styles.body1, { color: colors.mutedForeground }]}>
@@ -209,18 +216,42 @@ export default function Onboarding() {
 
           {step === 2 ? (
             <View style={styles.center}>
-              <View
-                style={[
-                  styles.iconCircle,
-                  {
-                    borderColor: colors.borderStrong,
-                    backgroundColor: colors.cardAlt,
-                  },
-                ]}
-              >
-                <Feather name="link" size={26} color={colors.accent} />
+              {/* Brand mark + Supermemory badge */}
+              <View style={styles.smIconRow}>
+                <View
+                  style={[
+                    styles.brandMark,
+                    {
+                      borderColor: colors.accentRing,
+                      backgroundColor: colors.accentDim,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.brandMarkText, { color: colors.text }]}>
+                    tr<Text style={{ color: colors.accent }}>a</Text>ce
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.smConnector,
+                    { backgroundColor: colors.borderStrong },
+                  ]}
+                />
+                <View
+                  style={[
+                    styles.smBadge,
+                    {
+                      borderColor: colors.accentRing,
+                      backgroundColor: colors.accentDim,
+                    },
+                  ]}
+                >
+                  <Feather name="zap" size={22} color={colors.accent} />
+                </View>
               </View>
-              <Text style={[styles.title, { color: colors.text, marginTop: 24 }]}>
+              <Text
+                style={[styles.title, { color: colors.text, marginTop: 28 }]}
+              >
                 Build your agent's memory
               </Text>
               <Text style={[styles.body1, { color: colors.mutedForeground }]}>
@@ -228,6 +259,33 @@ export default function Onboarding() {
                 graph — the foundation your future AI agent will think from.
                 Free to start, totally optional.
               </Text>
+              <View
+                style={[
+                  styles.smFeatureRow,
+                  {
+                    borderColor: colors.border,
+                    backgroundColor: colors.cardAlt,
+                  },
+                ]}
+              >
+                {[
+                  { icon: "lock" as const, text: "Your key, your data" },
+                  { icon: "cpu" as const, text: "Powers your AI agents" },
+                  { icon: "gift" as const, text: "Free to start" },
+                ].map((f) => (
+                  <View key={f.text} style={styles.smFeature}>
+                    <Feather name={f.icon} size={13} color={colors.accent} />
+                    <Text
+                      style={[
+                        styles.smFeatureText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {f.text}
+                    </Text>
+                  </View>
+                ))}
+              </View>
 
               <View style={styles.toggleRow}>
                 <Pressable
@@ -302,7 +360,11 @@ export default function Onboarding() {
             ]}
           >
             <Text style={[styles.ctaText, { color: colors.accentForeground }]}>
-              {step === 0 ? "Get started" : step === 2 ? "Enter your journal" : "Continue"}
+              {step === 0
+                ? "Get started"
+                : step === 2
+                  ? "Enter your journal"
+                  : "Continue"}
             </Text>
           </Pressable>
         </View>
@@ -363,6 +425,47 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  smIconRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 0,
+  },
+  smConnector: {
+    width: 32,
+    height: 2,
+    borderRadius: 1,
+  },
+  smBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  smFeatureRow: {
+    flexDirection: "row",
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 0,
+    justifyContent: "space-between",
+    width: "100%",
+    maxWidth: 360,
+    marginTop: 4,
+  },
+  smFeature: {
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
+  },
+  smFeatureText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    textAlign: "center",
+    letterSpacing: 0.1,
   },
   avatarRing: {
     width: 116,

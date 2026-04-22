@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Animated,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Pressable,
   ScrollView,
@@ -49,6 +49,9 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
   const translateY = useRef(new Animated.Value(sheetHeight)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(false);
+
+  // --- Keyboard state (plain, not animated — paddingBottom handles the layout) ---
+  const [kbHeight, setKbHeight] = useState(0);
 
   // --- Content state ---
   const [tab, setTab] = useState<Tab>("write");
@@ -109,6 +112,17 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
       ]).start(() => setMounted(false));
     }
   }, [visible, sheetHeight]);
+
+  // --- Keyboard: shrink content inside the sheet so header + text stay visible ---
+  // The sheet stays anchored at bottom: 0. We add paddingBottom = kbHeight so
+  // the ScrollView shrinks and the mic button is hidden while typing.
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const onShow = Keyboard.addListener(showEvent, (e) => setKbHeight(e.endCoordinates.height));
+    const onHide = Keyboard.addListener(hideEvent, () => setKbHeight(0));
+    return () => { onShow.remove(); onHide.remove(); };
+  }, []);
 
   // --- Load entry when sheet opens ---
   useEffect(() => {
@@ -286,11 +300,7 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
           },
         ]}
       >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={0}
-        >
+        <View style={{ flex: 1 }}>
           {/* Handle bar */}
           <View style={styles.handleWrap}>
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
@@ -381,6 +391,7 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
               onTextChange={onTextChange}
               onTranscript={appendTranscript}
               colors={colors}
+              kbHeight={kbHeight}
             />
           ) : (
             <MemoriesTab
@@ -390,7 +401,7 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
               insetBottom={0}
             />
           )}
-        </KeyboardAvoidingView>
+        </View>
 
         {toast && (
           <Toast
@@ -406,19 +417,26 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
 }
 
 // --- Write tab ---
+// kbHeight > 0 means the keyboard is open.
+// We add paddingBottom so the ScrollView shrinks and the cursor stays visible.
+// The mic button is hidden while keyboard is open — voice and typing don't mix.
 function WriteTab({
   text,
   onTextChange,
   onTranscript,
   colors,
+  kbHeight,
 }: {
   text: string;
   onTextChange: (v: string) => void;
   onTranscript: (t: string) => void;
   colors: ReturnType<typeof import("@/hooks/useColors").useColors>;
+  kbHeight: number;
 }) {
+  const keyboardOpen = kbHeight > 0;
+
   return (
-    <View style={styles.writeTab}>
+    <View style={[styles.writeTab, { paddingBottom: kbHeight }]}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={styles.writeScroll}
@@ -437,10 +455,12 @@ function WriteTab({
         />
       </ScrollView>
 
-      {/* Mic button area — fixed at bottom of write tab */}
-      <View style={[styles.micArea, { borderTopColor: colors.border }]}>
-        <BigMicButton onTranscript={onTranscript} />
-      </View>
+      {/* Mic button — hidden when keyboard is open */}
+      {!keyboardOpen && (
+        <View style={[styles.micArea, { borderTopColor: colors.border }]}>
+          <BigMicButton onTranscript={onTranscript} />
+        </View>
+      )}
     </View>
   );
 }
