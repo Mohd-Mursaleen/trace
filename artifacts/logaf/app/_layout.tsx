@@ -5,16 +5,19 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
+import { Feather } from "@expo/vector-icons";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Tabs } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
+import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useColors } from "@/hooks/useColors";
 import { JournalProvider } from "@/hooks/useJournalStore";
 
 SplashScreen.preventAutoHideAsync();
@@ -22,25 +25,78 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  const colors = useColors();
+
   return (
-    <Stack
+    <Tabs
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: "#0a0a0b" },
-        animation: "fade",
+        sceneStyle: { backgroundColor: colors.background },
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          height: Platform.OS === "ios" ? 62 : 48,
+          paddingBottom: Platform.OS === "ios" ? 20 : 8,
+          paddingTop: 7,
+        },
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarLabelStyle: {
+          fontFamily: "Inter_500Medium",
+          fontSize: 12,
+          letterSpacing: 0.2,
+          marginTop: 4,
+        },
       }}
     >
-      <Stack.Screen name="index" />
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Journal",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="calendar" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: "Search",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="zap" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="onboarding"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+      <Tabs.Screen
         name="settings"
-        options={{ presentation: "card", animation: "slide_from_right" }}
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
       />
-      <Stack.Screen
+      <Tabs.Screen
         name="privacy"
-        options={{ presentation: "card", animation: "slide_from_right" }}
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
       />
-    </Stack>
+      <Tabs.Screen
+        name="+not-found"
+        options={{
+          href: null,
+          tabBarStyle: { display: "none" },
+        }}
+      />
+    </Tabs>
   );
 }
 

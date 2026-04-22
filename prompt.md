@@ -1,616 +1,1050 @@
-```markdown
-# log.af — Premium UI Overhaul (Match Portfolio Journal)
+# trace — Search Tab + Profile Card + Settings Revamp
 
-## Context
+## Project context
 
-This is a React Native + Expo journal app at `artifacts/logaf/`. The app currently looks generic and flat. We need to make it look and feel like the portfolio journal at geekymd.me — which has a **dot grid background, lime accent `#c4f441`, dark surfaces, glow halos, soft overlays, and premium monospace details**.
+This is a React Native + Expo journal app called **trace** at `artifacts/logaf/`. It is a local-first personal journal where entries are stored in AsyncStorage. Supermemory is an optional integration — users push journal entries to Supermemory as memories and can search/retrieve them semantically.
 
-Here is exactly what the portfolio uses, extracted directly from source:
+**Existing relevant files:**
 
-### Portfolio color tokens (from tailwind.config.js)
-```
+- `app/index.tsx` — home screen
+- `app/settings.tsx` — settings screen
+- `components/DayEditorSheet.tsx` — journal entry editor
+- `components/Toast.tsx` — toast system
+- `components/DotGrid.tsx` — dot grid background
+- `lib/supermemory.ts` — Supermemory sync helper
+- `lib/storage.ts` — AsyncStorage CRUD (Profile, JournalEntry, IndexEntry)
+- `hooks/useJournalStore.tsx` — global context (profile, index, loadEntry)
+- `hooks/useColors.ts` — theme tokens
+- `constants/colors.ts` — accent: `#c4f441`, bg: `#0a0a0a`
 
-bg: '#0a0a0a'
-bg-elevated: '#141414'
-bg-card: '#1a1a1a'
-foreground: '#fafafa'
-text-secondary: '#999999'
-text-muted: '#666666'
-accent: '#c4f441' ← THIS is the exact green. not #b4ff6e
-border: '#1e1e1e'
-border-hover: '#2e2e2e'
-
-````
-
-### Portfolio background (from globals.css)
-```css
-background-color: #0a0a0a;
-background-image: radial-gradient(rgba(255,255,255,0.13) 1px, transparent 1px);
-background-size: 22px 22px;
-````
-
-This is the dot grid. We need to replicate this in React Native.
+**Supermemory containerTag used throughout:** `"trace_user"` — use this for ALL Supermemory API calls.
 
 ---
 
-## Task 1 — Fix constants/colors.ts completely
+## PART 1 — Bottom Tab Navigation
 
-Replace the entire file with:
+### Replace the current single-screen navigation with a bottom tab navigator
 
-```ts
-const palette = {
-  bg: "#0a0a0a",
-  surface: "#111111",
-  surfaceAlt: "#1a1a1a",
-  surfaceHigh: "#141414",
-  border: "#1e1e1e",
-  borderStrong: "#2e2e2e",
-  text: "#fafafa",
-  textMuted: "#666666",
-  textSecondary: "#999999",
-  textDim: "#444444",
-  accent: "#c4f441",
-  accentSoft: "rgba(196,244,65,0.15)",
-  accentDim: "rgba(196,244,65,0.08)",
-  accentRing: "rgba(196,244,65,0.5)",
-  danger: "#ff4d4d",
-  recording: "#ff4d4d",
-};
-
-const token = {
-  text: palette.text,
-  tint: palette.accent,
-  background: palette.bg,
-  foreground: palette.text,
-  card: palette.surface,
-  cardForeground: palette.text,
-  cardAlt: palette.surfaceAlt,
-  cardHigh: palette.surfaceHigh,
-  primary: palette.accent,
-  primaryForeground: "#0a0a0a",
-  secondary: palette.surfaceAlt,
-  secondaryForeground: palette.text,
-  muted: palette.surfaceAlt,
-  mutedForeground: palette.textMuted,
-  accent: palette.accent,
-  accentForeground: "#0a0a0a",
-  accentSoft: palette.accentSoft,
-  accentDim: palette.accentDim,
-  accentRing: palette.accentRing,
-  destructive: palette.danger,
-  destructiveForeground: "#ffffff",
-  border: palette.border,
-  borderStrong: palette.borderStrong,
-  input: palette.border,
-  textDim: palette.textDim,
-  textMuted: palette.textMuted,
-  textSecondary: palette.textSecondary,
-  recording: palette.recording,
-};
-
-const colors = {
-  light: token,
-  dark: token,
-  radius: 12,
-};
-
-export default colors;
-```
-
----
-
-## Task 2 — Add dot grid background to the home screen
-
-In `app/index.tsx`, wrap the entire screen content in a `View` that simulates the dot grid background.
-
-Since React Native doesn't support CSS background patterns natively, create a `DotGrid` component:
-
-### Create `components/DotGrid.tsx`
+In `app/_layout.tsx`, replace the Stack navigator with an Expo Router Tabs navigator:
 
 ```tsx
-import { StyleSheet, View } from "react-native";
+import { Tabs } from "expo-router";
+import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
+import { Platform } from "react-native";
 
-/**
- * Renders a dot grid background matching the portfolio:
- * radial-gradient(rgba(255,255,255,0.13) 1px, transparent 1px)
- * background-size: 22px 22px
- *
- * We simulate this by rendering a grid of tiny dots absolutely positioned.
- * Use useMemo to compute dots based on screen size.
- */
-import { useMemo } from "react";
-import { useWindowDimensions } from "react-native";
-
-export function DotGrid() {
-  const { width, height } = useWindowDimensions();
-  const spacing = 22;
-
-  const dots = useMemo(() => {
-    const cols = Math.ceil(width / spacing) + 1;
-    const rows = Math.ceil(height / spacing) + 2;
-    const result = [];
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        result.push({ key: `${r}-${c}`, x: c * spacing, y: r * spacing });
-      }
-    }
-    return result;
-  }, [width, height]);
-
+export default function Layout() {
+  const colors = useColors();
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      {dots.map((d) => (
-        <View
-          key={d.key}
-          style={{
-            position: "absolute",
-            left: d.x,
-            top: d.y,
-            width: 1,
-            height: 1,
-            borderRadius: 0.5,
-            backgroundColor: "rgba(255,255,255,0.13)",
-          }}
-        />
-      ))}
-    </View>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          height: Platform.OS === "ios" ? 88 : 68,
+          paddingBottom: Platform.OS === "ios" ? 28 : 12,
+          paddingTop: 10,
+        },
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarLabelStyle: {
+          fontFamily: "Inter_500Medium",
+          fontSize: 12,
+          letterSpacing: 0.2,
+          marginTop: 4,
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: "Journal",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="calendar" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: "Search",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="zap" size={size} color={color} />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }
 ```
 
-Then in `app/index.tsx`, add `<DotGrid />` as the first child inside the root View, behind everything else:
+Tab bar design rules:
 
-```tsx
-<View style={[styles.root, { backgroundColor: colors.background }]}>
-  <DotGrid />
-  {/* rest of content */}
-</View>
-```
+- `backgroundColor: colors.surface` (`#111111`)
+- `borderTopColor: colors.border` (`#1e1e1e`)
+- Active: `colors.accent` (`#c4f441`)
+- Inactive: `colors.textMuted` (`#666666`)
+- Both tabs have labels — "Journal" and "Search"
+- Calendar icon for Journal, Zap (⚡) icon for Search
+- The two tabs are wide and comfortable since there are only 2
 
-Also add the DotGrid to `app/onboarding.tsx` and `app/settings.tsx` the same way.
-
----
-
-## Task 3 — Add accent glow halo behind the profile avatar
-
-In `components/ProfileHero.tsx`, add a radial glow behind the avatar. This is the soft green glow the portfolio has around interactive accent elements.
-
-```tsx
-{
-  /* Glow halo */
-}
-<View
-  style={{
-    position: "absolute",
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: "rgba(196,244,65,0.08)",
-    // blur approximated by making it larger and very transparent
-  }}
-/>;
-{
-  /* Second outer glow ring */
-}
-<View
-  style={{
-    position: "absolute",
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: "rgba(196,244,65,0.04)",
-  }}
-/>;
-{
-  /* Avatar on top */
-}
-<View style={[avatarStyles, { zIndex: 1 }]}>
-  {/* avatar image or initials */}
-</View>;
-```
-
-Center everything with `alignItems: 'center', justifyContent: 'center'` on the parent container.
+Move settings out of tabs — it remains a Stack screen pushed from the Journal tab via `router.push('/settings')`. Update `_layout.tsx` to handle this with a nested Stack inside the tabs if needed.
 
 ---
 
-## Task 4 — Fix JournalCalendar toggle to match portfolio exactly
+## PART 2 — Search Screen (`app/search.tsx`)
 
-The portfolio toggle (from JournalCalendar.jsx):
+Create this file from scratch.
 
-```
-inline-flex rounded-xl border border-border bg-bg-elevated p-1
-Active tab: bg-accent text-black rounded-lg px-4 py-1.5 text-sm font-mono
-Inactive tab: text-text-muted hover:text-foreground rounded-lg px-4 py-1.5
-```
+### 2A — Lock screen (Supermemory not enabled)
 
-In `components/JournalCalendar.tsx`, rewrite the toggle:
+If `profile.supermemoryEnabled === false`, show a full lock screen:
 
 ```tsx
 <View
   style={{
-    flexDirection: "row",
-    alignSelf: "center",
-    backgroundColor: colors.cardAlt,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 4,
-    marginBottom: 20,
-  }}
->
-  {(["monthly", "yearly"] as const).map((mode) => (
-    <Pressable
-      key={mode}
-      onPress={() => setViewMode(mode)}
-      style={({ pressed }) => ({
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 9,
-        backgroundColor: viewMode === mode ? colors.accent : "transparent",
-        opacity: pressed ? 0.85 : 1,
-      })}
-    >
-      <Text
-        style={{
-          fontSize: 13,
-          fontFamily:
-            viewMode === mode ? "Inter_600SemiBold" : "Inter_400Regular",
-          color: viewMode === mode ? "#0a0a0a" : colors.textMuted,
-          letterSpacing: 0.2,
-        }}
-      >
-        {mode.charAt(0).toUpperCase() + mode.slice(1)}
-      </Text>
-    </Pressable>
-  ))}
-</View>
-```
-
----
-
-## Task 5 — Fix CalendarDayCell to exactly match portfolio DayCell
-
-The portfolio DayCell has these exact behaviors (from JournalCalendar.jsx):
-
-### Photo day
-
-```
-ring-2 ring-accent ring-offset-1 ring-offset-bg (if today)
-Image fills cell with object-cover
-Black overlay: bg-black/10 → bg-black/30 on hover
-Day number: absolute bottom-right, text-white/90 or text-accent if today
-```
-
-### Text-only day (inMap, no image)
-
-```
-bg-accent/10 → hover: bg-accent/20
-Flex column with gap
-Day number: text-foreground (or text-accent if today)
-Accent dot: w-1 h-1 rounded-full bg-accent centered below number
-```
-
-### Today (no entry)
-
-```
-ring-2 ring-accent ring-offset-1 ring-offset-bg
-hover: bg-accent/5
-Day number: text-accent font-bold
-```
-
-### Future
-
-```
-opacity-30
-Day number: text-text-muted font-mono
-Not interactive
-```
-
-### Empty past
-
-```
-Just day number: text-text-muted font-mono
-Pressable with subtle hover
-```
-
-Replicate all these states in `components/CalendarDayCell.tsx` using React Native equivalents:
-
-- `ring-2 ring-accent` → `borderWidth: 1.5, borderColor: colors.accent`
-- `bg-accent/10` → `backgroundColor: colors.accentDim`
-- `opacity-30` → `opacity: 0.3`
-- `bg-black/10` overlay → `<View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.12)' }} />`
-
----
-
-## Task 6 — Fix Legend to match portfolio
-
-Portfolio legend (from JournalCalendar.jsx):
-
-```
-flex items-center gap-4 mt-6 justify-center flex-wrap
-
-logged:    small square w-3 h-3 bg-accent/10 border border-accent/30 + w-1 h-1 dot inside
-has photo: small square w-3 h-3 bg-[#1a1a1a] border border-accent + gradient overlay
-today:     small square w-3 h-3 ring-1 ring-accent (just a ring, no fill)
-
-All labels: text-[10px] font-mono text-text-muted
-```
-
-Rewrite `components/Legend.tsx` to match:
-
-```tsx
-<View
-  style={{
-    flexDirection: "row",
-    gap: 16,
-    marginTop: 20,
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: "center",
     justifyContent: "center",
-    flexWrap: "wrap",
+    padding: 32,
   }}
 >
-  {/* logged */}
-  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+  <DotGrid />
+  {/* Lock icon with lime glow halo */}
+  <View
+    style={{ alignItems: "center", justifyContent: "center", marginBottom: 32 }}
+  >
     <View
       style={{
-        width: 12,
-        height: 12,
-        borderRadius: 2,
-        backgroundColor: colors.accentDim,
-        borderWidth: 1,
-        borderColor: "rgba(196,244,65,0.3)",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <View
-        style={{
-          width: 4,
-          height: 4,
-          borderRadius: 2,
-          backgroundColor: colors.accent,
-        }}
-      />
-    </View>
-    <Text
-      style={{
-        fontSize: 10,
-        fontFamily: "Inter_400Regular",
-        color: colors.textMuted,
-      }}
-    >
-      logged
-    </Text>
-  </View>
-
-  {/* has photo */}
-  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-    <View
-      style={{
-        width: 12,
-        height: 12,
-        borderRadius: 2,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.accent,
-        overflow: "hidden",
-      }}
-    >
-      <View style={{ flex: 1, backgroundColor: "rgba(196,244,65,0.15)" }} />
-    </View>
-    <Text
-      style={{
-        fontSize: 10,
-        fontFamily: "Inter_400Regular",
-        color: colors.textMuted,
-      }}
-    >
-      has photo
-    </Text>
-  </View>
-
-  {/* today */}
-  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-    <View
-      style={{
-        width: 12,
-        height: 12,
-        borderRadius: 2,
-        borderWidth: 1.5,
-        borderColor: colors.accent,
+        position: "absolute",
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: "rgba(196,244,65,0.06)",
       }}
     />
+    <View
+      style={{
+        position: "absolute",
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+        backgroundColor: "rgba(196,244,65,0.1)",
+      }}
+    />
+    <Feather name="lock" size={32} color={colors.accent} />
+  </View>
+  <Text
+    style={{
+      fontFamily: "Inter_600SemiBold",
+      fontSize: 20,
+      color: colors.text,
+      textAlign: "center",
+      letterSpacing: -0.3,
+    }}
+  >
+    Search is locked
+  </Text>
+  <Text
+    style={{
+      fontFamily: "Inter_400Regular",
+      fontSize: 14,
+      color: colors.textMuted,
+      textAlign: "center",
+      marginTop: 8,
+      lineHeight: 22,
+    }}
+  >
+    Enable Supermemory to search your journal semantically — ask anything about
+    your past.
+  </Text>
+  <Pressable
+    onPress={() => router.push("/settings")}
+    style={{
+      marginTop: 28,
+      backgroundColor: colors.accent,
+      paddingHorizontal: 24,
+      paddingVertical: 14,
+      borderRadius: 999,
+    }}
+  >
     <Text
       style={{
-        fontSize: 10,
-        fontFamily: "Inter_400Regular",
-        color: colors.textMuted,
+        fontFamily: "Inter_600SemiBold",
+        fontSize: 14,
+        color: "#0a0a0a",
       }}
     >
-      today
+      Enable in Settings
     </Text>
-  </View>
+  </Pressable>
 </View>
 ```
 
----
+### 2B — Search screen (Supermemory enabled)
 
-## Task 7 — Fix the yearly calendar grid year header
+State variables needed:
 
-Portfolio year header (from JournalCalendar.jsx):
-
+```ts
+const [query, setQuery] = useState("");
+const [results, setResults] = useState<SearchResult[]>([]);
+const [loading, setLoading] = useState(false);
+const [activeFilter, setActiveFilter] = useState<string | null>(null);
+const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
+const [hasSearched, setHasSearched] = useState(false);
 ```
-Year number: text-2xl font-black font-mono text-foreground tracking-tight
-Entry count below: text-[10px] font-mono text-text-muted
-Prev/next arrows: p-1.5 rounded-lg text-text-muted hover:text-foreground hover:bg-bg-elevated
+
+### 2C — Rotating placeholder suggestions
+
+Define this array at the top of the file (30+ items, generic and relatable):
+
+```ts
+const SEARCH_SUGGESTIONS = [
+  "when was I last really happy?",
+  "what was I stressed about last month?",
+  "when did I feel proud of myself?",
+  "what was I working on in January?",
+  "times I felt grateful",
+  "when did I last travel somewhere?",
+  "what made me anxious recently?",
+  "moments I felt at peace",
+  "when did I last meet someone new?",
+  "what was I excited about this year?",
+  "times I felt overwhelmed",
+  "when did I have a breakthrough?",
+  "what was I reading or watching?",
+  "when did I last exercise or stay active?",
+  "moments of self-doubt",
+  "when did I feel most creative?",
+  "what was I worried about in February?",
+  "times I celebrated something",
+  "when did I last feel lonely?",
+  "what decisions did I make this month?",
+  "times I laughed a lot",
+  "when did I last feel motivated?",
+  "what was I building or creating?",
+  "moments I was proud of my work",
+  "when did I last talk to someone important?",
+  "what was on my mind this week?",
+  "times I felt stuck",
+  "when did I last try something new?",
+  "what made me smile recently?",
+  "moments I needed rest",
+];
 ```
 
-In `components/JournalCalendar.tsx` year view header, style accordingly:
+Use `useEffect` with `setInterval` (3000ms) to rotate through the suggestions by index. The rotating text appears as the input placeholder, not as separate pill buttons.
+
+The placeholder text changes with a subtle fade/opacity animation using `Animated.timing`.
+
+### 2D — Filter pills
+
+Define these filter pills:
+
+```ts
+const FILTER_OPTIONS = [
+  { label: "This week", key: "week" },
+  { label: "This month", key: "month" },
+  { label: "Last 3 months", key: "3months" },
+  { label: "This year", key: "year" },
+  { label: "All time", key: "all" },
+];
+```
+
+Filters appear as a horizontal ScrollView below the search input, always visible. When a filter is selected:
+
+- It gets `backgroundColor: colors.accent`, text `color: '#0a0a0a'`
+- Others: `backgroundColor: colors.cardAlt`, text `color: colors.textMuted`
+- Selecting a filter + having a query → re-triggers search with metadata filter
+
+Filter → metadata filter mapping for Supermemory API:
+
+```ts
+function getDateFilter(filterKey: string) {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+  if (filterKey === "week") {
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    return `${weekAgo.getFullYear()}-${pad(weekAgo.getMonth() + 1)}-${pad(weekAgo.getDate())}`;
+  }
+  if (filterKey === "month") {
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
+  }
+  if (filterKey === "3months") {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() - 3);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
+  }
+  if (filterKey === "year") {
+    return `${now.getFullYear()}-01-01`;
+  }
+  return null; // all time = no filter
+}
+```
+
+### 2E — Supermemory Search API call
+
+Create/update `lib/supermemory.ts` to add a search function:
+
+```ts
+export type SearchResult = {
+  id: string;
+  memory?: string;
+  chunk?: string;
+  similarity: number;
+  metadata?: {
+    date?: string;
+    source?: string;
+    year?: string;
+    month?: string;
+    [key: string]: any;
+  };
+  updatedAt?: string;
+};
+
+export type SearchResponse = {
+  results: SearchResult[];
+  timing: number;
+  total: number;
+};
+
+export async function searchMemories(
+  key: string,
+  query: string,
+  dateFrom?: string | null,
+): Promise<{ success: boolean; data?: SearchResponse; error?: string }> {
+  if (!key?.trim() || !query?.trim()) {
+    return { success: false, error: "missing key or query" };
+  }
+
+  const body: any = {
+    q: query,
+    containerTag: "trace_user",
+    searchMode: "hybrid",
+    limit: 8,
+    threshold: 0.5,
+    rerank: true,
+  };
+
+  if (dateFrom) {
+    body.filters = {
+      AND: [{ key: "date", value: dateFrom, operator: "gte" }],
+    };
+  }
+
+  try {
+    const res = await fetch("https://api.supermemory.ai/v3/memories/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key.trim()}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      return { success: false, error: `${res.status}: ${errText}` };
+    }
+
+    const data: SearchResponse = await res.json();
+    return { success: true, data };
+  } catch (e: any) {
+    return { success: false, error: e?.message ?? "network error" };
+  }
+}
+```
+
+Also add profile fetch:
+
+```ts
+export type ProfileResponse = {
+  profile: {
+    static: string[];
+    dynamic: string[];
+  };
+  searchResults?: SearchResponse;
+};
+
+export async function fetchProfile(
+  key: string,
+): Promise<{ success: boolean; data?: ProfileResponse; error?: string }> {
+  if (!key?.trim()) return { success: false, error: "no key" };
+  try {
+    const res = await fetch(
+      `https://api.supermemory.ai/v3/profile?containerTag=trace_user`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${key.trim()}`,
+        },
+      },
+    );
+    if (!res.ok) {
+      const t = await res.text();
+      return { success: false, error: `${res.status}: ${t}` };
+    }
+    const data: ProfileResponse = await res.json();
+    return { success: true, data };
+  } catch (e: any) {
+    return { success: false, error: e?.message ?? "network error" };
+  }
+}
+```
+
+### 2F — Voice search
+
+Add a mic button next to the search input. Use React Native's built-in `Voice` via `expo-speech` is NOT for this — use the device's native speech recognition via `@react-native-voice/voice` if available, OR use the existing `useVoiceRecorder` + Deepgram pipeline that's already in the app.
+
+Actually — use the **existing `VoiceRecorderButton` component** and wire `onTranscript` to set the query and auto-trigger search:
 
 ```tsx
-// Year number
-<Text style={{
-  fontSize: 28,
-  fontFamily: 'Inter_700Bold',
-  color: colors.foreground,
-  letterSpacing: -1,
-}}>
-  {year}
-</Text>
-
-// Count
-<Text style={{
-  fontSize: 10,
-  fontFamily: 'Inter_400Regular',
-  color: colors.textMuted,
-  marginTop: 2,
-  textAlign: 'center',
-}}>
-  {totalEntries} memories
-</Text>
-
-// Arrow buttons
-<Pressable style={({ pressed }) => ({
-  padding: 8,
-  borderRadius: 8,
-  backgroundColor: pressed ? colors.cardAlt : 'transparent',
-})}>
-  <Feather name="chevron-left" size={16} color={colors.textMuted} />
-</Pressable>
+<VoiceRecorderButton
+  onTranscript={(text) => {
+    setQuery(text);
+    handleSearch(text);
+  }}
+/>
 ```
 
----
+Place it inside the search input row on the right side.
 
-## Task 8 — Fix the home screen nav header
-
-Portfolio nav (from layout.jsx):
-
-```
-border border-[#1e1e1e] bg-[#111111]/80 backdrop-blur-xl rounded-xl
-Left: home icon + "geekymd.me" in font-mono text-text-muted
-Right: "Journal" in font-mono uppercase tracking-widest text-text-secondary
-```
-
-In `app/index.tsx` header, match this style:
+### 2G — Search input UI
 
 ```tsx
 <View
   style={{
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginHorizontal: 16,
-    marginTop: insets.top + 8,
-    marginBottom: 8,
-    borderRadius: 12,
+    backgroundColor: colors.cardAlt,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: "rgba(17,17,17,0.9)",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+    marginHorizontal: 16,
+    marginTop: 16,
   }}
 >
+  <Feather name="search" size={16} color={colors.textMuted} />
+  <TextInput
+    value={query}
+    onChangeText={setQuery}
+    onSubmitEditing={() => handleSearch(query)}
+    returnKeyType="search"
+    placeholder={currentSuggestion} // rotates from SEARCH_SUGGESTIONS
+    placeholderTextColor={colors.textDim}
+    style={{
+      flex: 1,
+      fontFamily: "Inter_400Regular",
+      fontSize: 15,
+      color: colors.text,
+    }}
+    selectionColor={colors.accent}
+  />
+  {query.length > 0 && (
+    <Pressable
+      onPress={() => {
+        setQuery("");
+        setResults([]);
+        setHasSearched(false);
+      }}
+    >
+      <Feather name="x" size={15} color={colors.textMuted} />
+    </Pressable>
+  )}
+  <VoiceRecorderButton
+    onTranscript={(text) => {
+      setQuery(text);
+      handleSearch(text);
+    }}
+  />
+</View>
+```
+
+### 2H — Results list
+
+Each result card in the list:
+
+```tsx
+// Result card
+<Pressable
+  onPress={() => setSelectedResult(result)}
+  style={({ pressed }) => ({
+    backgroundColor: pressed ? colors.cardAlt : colors.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 16,
+    gap: 8,
+  })}
+>
+  {/* Date badge */}
   <Text
     style={{
       fontFamily: "Inter_400Regular",
-      fontSize: 13,
-      color: colors.textMuted,
-      letterSpacing: 0.2,
+      fontSize: 11,
+      color: colors.accent,
+      letterSpacing: 0.4,
+      textTransform: "uppercase",
     }}
   >
-    log.af
+    {formatDisplayDate(result.metadata?.date || result.updatedAt)}
   </Text>
-  <Pressable onPress={() => router.push("/settings")}>
-    <Feather name="settings" size={16} color={colors.textMuted} />
-  </Pressable>
+
+  {/* Memory/chunk text */}
+  <Text
+    numberOfLines={3}
+    style={{
+      fontFamily: "Inter_400Regular",
+      fontSize: 14,
+      color: colors.text,
+      lineHeight: 22,
+    }}
+  >
+    {result.memory || result.chunk || ""}
+  </Text>
+
+  {/* Similarity score as a subtle bar */}
+  <View
+    style={{
+      height: 2,
+      backgroundColor: colors.border,
+      borderRadius: 1,
+      overflow: "hidden",
+    }}
+  >
+    <View
+      style={{
+        height: 2,
+        width: `${Math.round(result.similarity * 100)}%`,
+        backgroundColor: colors.accent,
+        borderRadius: 1,
+        opacity: 0.6,
+      }}
+    />
+  </View>
+</Pressable>
+```
+
+`formatDisplayDate` converts `"2026-04-14"` or ISO string to `"April 14, 2026"`.
+
+### 2I — Empty + loading states
+
+**Loading:** Show 3 skeleton cards (animated opacity pulse) while searching.
+
+**No results:**
+
+```tsx
+<View style={{ alignItems: "center", padding: 40 }}>
+  <Feather name="inbox" size={28} color={colors.textDim} />
+  <Text
+    style={{
+      color: colors.textMuted,
+      fontFamily: "Inter_400Regular",
+      fontSize: 14,
+      marginTop: 12,
+      textAlign: "center",
+    }}
+  >
+    Your journal hasn't captured this yet
+  </Text>
 </View>
+```
+
+**Pre-search (hasSearched = false):**
+Show a prompt-style UI with just the suggestion pills:
+
+```tsx
+<Text
+  style={{
+    color: colors.textDim,
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 40,
+  }}
+>
+  Ask anything about your past
+</Text>
 ```
 
 ---
 
-## Task 9 — Add subtle card border + background to calendar container
+## PART 3 — Result Bottom Sheet (90% screen)
 
-In `app/index.tsx`, the calendar should sit inside a card like the portfolio:
+Create `components/SearchResultSheet.tsx`.
+
+When a result is tapped, this sheet slides up covering 90% of the screen.
+
+```tsx
+type Props = {
+  result: SearchResult | null;
+  visible: boolean;
+  onClose: () => void;
+  localEntry?: JournalEntry | null; // loaded from AsyncStorage by date
+};
+```
+
+### Sheet structure
 
 ```
-p-5 sm:p-6 rounded-2xl bg-bg-card border border-border
+┌─────────────────────────────────┐
+│   ─────  (drag handle)          │
+│                                 │
+│   APRIL 14, 2026                │ ← date, monospace, accent color
+│   ──────────────────────        │
+│                                 │
+│   [full journal text here]      │ ← from localEntry.text if available
+│   [or memory/chunk from API]    │   fallback to result.memory
+│                                 │
+│   ──────────────────────        │
+│                                 │
+│   Photos                        │ ← section label
+│   [photo strip if images exist] │
+│                                 │
+└─────────────────────────────────┘
 ```
+
+Implementation:
+
+- Use React Native `Modal` with `animationType="slide"` and `presentationStyle="pageSheet"`
+- Inside: a `ScrollView`
+- Drag handle at top: `width: 40, height: 4, borderRadius: 2, backgroundColor: colors.borderStrong, alignSelf: 'center', marginTop: 12, marginBottom: 20`
+- When `result` has a `metadata.date`, load the local entry via `loadEntry(date)` from `useJournalStore` to get the full text + images
+
+### Date display in sheet
+
+```tsx
+<Text
+  style={{
+    fontFamily: "Inter_400Regular", // monospace feel
+    fontSize: 11,
+    color: colors.accent,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  }}
+>
+  {formatDisplayDate(date)} // "April 14, 2026"
+</Text>
+```
+
+### Text display
+
+```tsx
+<Text
+  style={{
+    fontFamily: "Inter_400Regular",
+    fontSize: 16,
+    lineHeight: 28,
+    color: colors.text,
+    letterSpacing: 0.1,
+  }}
+>
+  {localEntry?.text || result.memory || result.chunk}
+</Text>
+```
+
+### Photos in sheet
+
+If `localEntry?.images` has items, show them as a vertical stack of rounded images (not a strip — full readable width):
+
+```tsx
+{
+  localEntry?.images?.map((uri, i) => (
+    <Image
+      key={i}
+      source={{ uri }}
+      style={{
+        width: "100%",
+        height: 220,
+        borderRadius: 12,
+        marginTop: 16,
+      }}
+      contentFit="cover"
+    />
+  ));
+}
+```
+
+---
+
+## PART 4 — Settings Screen Revamp + Profile Card
+
+Completely revamp `app/settings.tsx`. Keep the same data/logic but redesign the layout.
+
+### 4A — Profile Card (top of settings)
+
+This is the hero element of the settings screen. It looks like a vertical ID badge/card.
+
+Structure:
+
+```
+┌─────────────────────────────────┐
+│                                 │
+│    [profile photo - special]    │
+│                                 │
+│    Mohd Mursaleen               │ ← name
+│    trace member                 │ ← subtitle
+│                                 │
+│    ┌──────────┬──────────┐      │
+│    │ 47       │ Apr 2026 │      │
+│    │ memories │ member since    │
+│    └──────────┴──────────┘      │
+│                                 │
+│    CURRENT VIBE                 │ ← from profile.dynamic
+│    "Working on something new"   │
+│                                 │
+│    RECENT CONTEXT               │ ← from profile.dynamic[1..2]
+│    "Has been feeling motivated" │
+│                                 │
+└─────────────────────────────────┘
+```
+
+**Card styling:**
 
 ```tsx
 <View style={{
   marginHorizontal: 16,
-  padding: 16,
   borderRadius: 20,
-  backgroundColor: colors.card,
   borderWidth: 1,
   borderColor: colors.border,
+  backgroundColor: colors.card,
+  overflow: 'hidden',
+  padding: 24,
+  alignItems: 'center',
+  gap: 0,
 }}>
-  <JournalCalendar ... />
+```
+
+**Profile photo — non-generic presentation:**
+Instead of a plain circle, use a hexagon-shaped clip or a square with heavily rounded corners (24px radius) with a subtle lime border glow:
+
+```tsx
+<View style={{
+  width: 88,
+  height: 88,
+  borderRadius: 24,
+  borderWidth: 1.5,
+  borderColor: 'rgba(196,244,65,0.4)',
+  overflow: 'hidden',
+  marginBottom: 16,
+  // Outer glow
+  shadowColor: '#c4f441',
+  shadowOpacity: 0.2,
+  shadowRadius: 12,
+  shadowOffset: { width: 0, height: 0 },
+  elevation: 8,
+}}>
+  {profile.photoUri ? (
+    <Image source={{ uri: profile.photoUri }} style={{ width: 88, height: 88 }} contentFit="cover" />
+  ) : (
+    <View style={{ width: 88, height: 88, backgroundColor: colors.cardAlt, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ fontSize: 28, fontFamily: 'Inter_700Bold', color: colors.accent }}>
+        {profile.name?.?.toUpperCase() || '?'}
+      </Text>
+    </View>
+  )}
 </View>
 ```
 
----
-
-## Task 10 — Fix ProfileHero layout and count text
-
-Portfolio header text:
-
-```
-h1: text-2xl font-semibold text-foreground tracking-tight  → "My Journal"
-p: text-sm text-text-muted font-mono mt-0.5               → "24 entries logged"
-```
-
-In `components/ProfileHero.tsx`:
+**Stats row:**
 
 ```tsx
-// Name
-<Text style={{
-  fontSize: 20,
-  fontFamily: 'Inter_600SemiBold',
-  color: colors.foreground,
-  letterSpacing: -0.3,
-  marginTop: 12,
-}}>
-  {profile.name || 'My Journal'}
-</Text>
+<View
+  style={{
+    flexDirection: "row",
+    width: "100%",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: 16,
+    overflow: "hidden",
+  }}
+>
+  <View
+    style={{
+      flex: 1,
+      padding: 14,
+      alignItems: "center",
+      borderRightWidth: 1,
+      borderRightColor: colors.border,
+    }}
+  >
+    <Text
+      style={{ fontFamily: "Inter_700Bold", fontSize: 22, color: colors.text }}
+    >
+      {index.length}
+    </Text>
+    <Text
+      style={{
+        fontFamily: "Inter_400Regular",
+        fontSize: 11,
+        color: colors.textMuted,
+        marginTop: 2,
+      }}
+    >
+      memories
+    </Text>
+  </View>
+  <View style={{ flex: 1, padding: 14, alignItems: "center" }}>
+    <Text
+      style={{
+        fontFamily: "Inter_600SemiBold",
+        fontSize: 13,
+        color: colors.text,
+      }}
+    >
+      {memberSince}
+    </Text>
+    <Text
+      style={{
+        fontFamily: "Inter_400Regular",
+        fontSize: 11,
+        color: colors.textMuted,
+        marginTop: 2,
+      }}
+    >
+      member since
+    </Text>
+  </View>
+</View>
+```
 
-// Count
-<Text style={{
-  fontSize: 12,
-  fontFamily: 'Inter_400Regular',  // monospace ideally, or Inter_400Regular
-  color: colors.textMuted,
-  marginTop: 4,
-  letterSpacing: 0.3,
-}}>
-  {count} {count === 1 ? 'memory' : 'memories'} logged
+`memberSince` = earliest date in `index` array formatted as `"Apr 2026"`.
+
+**Current vibe + recent context (from Supermemory profile.dynamic):**
+
+Only show if Supermemory is enabled. Auto-fetch on settings screen mount:
+
+```ts
+useEffect(() => {
+  if (!profile.supermemoryEnabled || !profile.supermemoryKey) return;
+  let cancelled = false;
+  setProfileLoading(true);
+  fetchProfile(profile.supermemoryKey).then((res) => {
+    if (cancelled) return;
+    setProfileLoading(false);
+    if (res.success && res.data) {
+      setSmProfile(res.data.profile);
+    } else {
+      setSmProfile(null);
+    }
+  });
+  return () => {
+    cancelled = true;
+  };
+}, []); // fetch once on mount
+```
+
+Display:
+
+```tsx
+{
+  profileLoading ? (
+    <ActivityIndicator
+      size="small"
+      color={colors.accent}
+      style={{ marginTop: 16 }}
+    />
+  ) : smProfile ? (
+    <View style={{ width: "100%", gap: 12, marginTop: 16 }}>
+      {smProfile.dynamic && (
+        <View style={{ gap: 4 }}>
+          <Text
+            style={{
+              fontFamily: "Inter_500Medium",
+              fontSize: 10,
+              color: colors.textDim,
+              letterSpacing: 1.4,
+              textTransform: "uppercase",
+            }}
+          >
+            Current vibe
+          </Text>
+          <Text
+            style={{
+              fontFamily: "Inter_400Regular",
+              fontSize: 13,
+              color: colors.textMuted,
+              lineHeight: 20,
+            }}
+          >
+            {smProfile.dynamic}
+          </Text>
+        </View>
+      )}
+      {smProfile.dynamic.slice(1, 3).length > 0 && (
+        <View style={{ gap: 4 }}>
+          <Text
+            style={{
+              fontFamily: "Inter_500Medium",
+              fontSize: 10,
+              color: colors.textDim,
+              letterSpacing: 1.4,
+              textTransform: "uppercase",
+            }}
+          >
+            Recent context
+          </Text>
+          {smProfile.dynamic.slice(1, 3).map((item, i) => (
+            <Text
+              key={i}
+              style={{
+                fontFamily: "Inter_400Regular",
+                fontSize: 13,
+                color: colors.textMuted,
+                lineHeight: 20,
+              }}
+            >
+              - {item}
+            </Text>
+          ))}
+        </View>
+      )}
+    </View>
+  ) : profile.supermemoryEnabled ? (
+    <Text
+      style={{
+        fontFamily: "Inter_400Regular",
+        fontSize: 13,
+        color: colors.textDim,
+        marginTop: 16,
+        textAlign: "center",
+      }}
+    >
+      Not enough memories yet
+    </Text>
+  ) : null;
+}
+```
+
+If Supermemory is NOT enabled, show the card without the vibe/context sections — just photo, name, stats.
+
+### 4B — Settings sections below the card
+
+Keep all existing functionality. Just restyle the sections to be consistent cards:
+
+Each section:
+
+```tsx
+<View
+  style={{
+    marginHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    overflow: "hidden",
+  }}
+>
+  {/* section rows inside */}
+</View>
+```
+
+Section title above each card:
+
+```tsx
+<Text
+  style={{
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    color: colors.textDim,
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
+    marginLeft: 20,
+    marginBottom: 8,
+    marginTop: 24,
+  }}
+>
+  Profile
 </Text>
 ```
+
+Each row inside a section has a hairline border between items:
+
+```tsx
+<View
+  style={{
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  }}
+>
+  {/* row content */}
+</View>
+```
+
+### 4C — About section
+
+Update the version text from `log.af · v1.0.0` to `trace · v1.0.0`.
 
 ---
 
-## What NOT to change
+## PART 5 — Update supermemory.ts sync to include metadata
 
-- Storage logic (`lib/storage.ts`)
-- Journal save/load hooks
-- Routing
-- Voice recorder logic
-- Supermemory logic (separate task)
+In the existing `syncToSupermemory` function, update the body to include proper metadata for filtering:
+
+```ts
+body: JSON.stringify({
+  content: `${date}\n\n${text}`,
+  containerTag: 'trace_user',
+  metadata: {
+    source: 'trace',
+    date: date,                          // "2026-04-14"
+    year: date.split('-'),            // "2026"
+    month: date.slice(0, 7),             // "2026-04"
+  },
+}),
+```
+
+This is essential for date-based filtering to work in search.
 
 ---
 
-## Summary of files to change
+## PART 6 — Files to create/modify
 
-1. `constants/colors.ts` — full rewrite with portfolio-exact tokens
-2. `components/DotGrid.tsx` — create new
-3. `app/index.tsx` — add DotGrid, fix header, wrap calendar in card
-4. `app/onboarding.tsx` — add DotGrid
-5. `app/settings.tsx` — add DotGrid
-6. `components/ProfileHero.tsx` — glow halo, fixed typography
-7. `components/JournalCalendar.tsx` — fix toggle, year header, month header
-8. `components/CalendarDayCell.tsx` — fix all 5 visual states to match portfolio exactly
-9. `components/Legend.tsx` — full rewrite to match portfolio legend
+### Create
 
-```
+- `app/search.tsx` — full search screen
+- `components/SearchResultSheet.tsx` — 90% bottom sheet for result
 
-***
-```
+### Modify
+
+- `app/_layout.tsx` — replace Stack with Tabs
+- `app/settings.tsx` — full revamp with profile card
+- `lib/supermemory.ts` — add `searchMemories()`, `fetchProfile()`, update `syncToSupermemory` metadata
+
+### Do NOT change
+
+- `lib/storage.ts`
+- `hooks/useJournalStore.tsx`
+- `hooks/useVoiceRecorder.ts`
+- `components/DayEditorSheet.tsx`
+- `components/JournalCalendar.tsx`
+- `components/CalendarDayCell.tsx`
+- `app/index.tsx`
+
+---
+
+## Design rules (apply everywhere)
+
+- Background: `#0a0a0a`
+- Cards: `#111111`
+- Elevated: `#1a1a1a`
+- Border: `#1e1e1e`
+- Accent: `#c4f441`
+- Text on accent: `#0a0a0a`
+- Muted: `#666666`
+- All dates shown as `"April 14, 2026"` format
+- Monospace/uppercase for section labels and metadata
+- Inter font family throughout
+- DotGrid background on both Search and Settings screens
+- No gradients, no heavy shadows
+- Smooth Animated transitions for sheet open/close

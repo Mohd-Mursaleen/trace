@@ -16,9 +16,10 @@ import { useVoiceRecorder } from "@/hooks/useVoiceRecorder";
 
 type Props = {
   onTranscript: (text: string) => void;
+  compact?: boolean;
 };
 
-export function VoiceRecorderButton({ onTranscript }: Props) {
+export function VoiceRecorderButton({ onTranscript, compact = false }: Props) {
   const colors = useColors();
   const { state, start, stop } = useVoiceRecorder(onTranscript);
   const pulse = useSharedValue(1);
@@ -61,7 +62,7 @@ export function VoiceRecorderButton({ onTranscript }: Props) {
         : "Hold a thought — tap to dictate";
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, compact && styles.wrapCompact]}>
       <Pressable
         onPress={onPress}
         disabled={isProcessing}
@@ -102,9 +103,11 @@ export function VoiceRecorderButton({ onTranscript }: Props) {
           )}
         </View>
       </Pressable>
-      <Text style={[styles.label, { color: colors.mutedForeground }]}>
-        {label}
-      </Text>
+      {!compact && (
+        <Text style={[styles.label, { color: colors.mutedForeground }]}>
+          {label}
+        </Text>
+      )}
     </View>
   );
 }
@@ -114,6 +117,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+  },
+  wrapCompact: {
+    gap: 0,
   },
   btnOuter: {
     width: 44,

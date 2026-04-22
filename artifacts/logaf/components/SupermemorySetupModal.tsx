@@ -7,10 +7,12 @@ import { Feather } from "@expo/vector-icons";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Animated,
+  KeyboardAvoidingView,
   Linking,
   Modal,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -101,7 +103,10 @@ export function SupermemorySetupModal({ visible, onDone }: Props) {
       onRequestClose={handleCancel}
       transparent={false}
     >
-      <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView
+        style={[styles.root, { backgroundColor: colors.background }]}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <Pressable
@@ -122,7 +127,12 @@ export function SupermemorySetupModal({ visible, onDone }: Props) {
           <View style={{ width: 32 }} />
         </View>
 
-        <View style={styles.body}>
+        <ScrollView
+          style={styles.bodyScroll}
+          contentContainerStyle={styles.body}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           {/* What it does */}
           <View style={[styles.infoCard, { backgroundColor: colors.cardAlt, borderColor: colors.accentRing }]}>
             <Text style={[styles.infoTitle, { color: colors.accent }]}>
@@ -235,8 +245,8 @@ export function SupermemorySetupModal({ visible, onDone }: Props) {
             ) : null}
             <Text style={styles.verifyBtnText}>{verifyLabel}</Text>
           </Pressable>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -295,10 +305,13 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   body: {
-    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 24,
+    paddingBottom: 28,
     gap: 24,
+  },
+  bodyScroll: {
+    flex: 1,
   },
   infoCard: {
     padding: 16,
