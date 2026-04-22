@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
@@ -44,12 +45,22 @@ export default function HomeScreen() {
           },
         ]}
       >
+        {/* Left — logo + brand name */}
         <View style={styles.navLeft}>
-          <Text style={[styles.navBrand, { color: colors.text }]}>trace</Text>
-          <Text style={[styles.navMemories, { color: colors.textSecondary }]}>
-            {index.length} {index.length === 1 ? "memory" : "memories"} logged
-          </Text>
+          <Image
+            source={require("../assets/icon.png")}
+            style={styles.navLogo}
+            contentFit="cover"
+          />
+          <Text style={[styles.navBrand, { color: colors.text }]}>trace.</Text>
         </View>
+
+        {/* Centre — memory count */}
+        <Text style={[styles.navMemories, { color: colors.textSecondary }]}>
+          {index.length} {index.length === 1 ? "memory" : "memories"} logged
+        </Text>
+
+        {/* Right — name + settings */}
         <View style={styles.navRight}>
           <Text style={[styles.navName, { color: colors.text }]}>
             {profile.name.trim() || "Traveller"}
@@ -115,7 +126,15 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(17,17,17,0.9)",
   },
   navLeft: {
-    gap: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  navLogo: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    overflow: "hidden",
   },
   navBrand: {
     fontFamily: "Inter_600SemiBold",
@@ -126,16 +145,19 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     fontSize: 11,
     letterSpacing: 0.1,
+    textAlign: "center",
+    flex: 1,
   },
   navRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
   },
   navName: {
     fontFamily: "Inter_500Medium",
-    fontSize: 13,
+    fontSize: 12,
     letterSpacing: -0.1,
+    maxWidth: 80,
   },
   calendarCard: {
     marginHorizontal: 16,
