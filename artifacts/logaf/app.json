@@ -1,30 +1,39 @@
 {
   "expo": {
-    "name": "log.af",
-    "slug": "logaf",
+    "name": "trace",
+    "slug": "trace",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "logaf",
+    "scheme": "trace",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0a0a0b"
+      "backgroundColor": "#0a0a0a"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "af.log.app",
+      "bundleIdentifier": "com.trace.app",
       "infoPlist": {
-        "NSMicrophoneUsageDescription": "log.af uses the microphone to record voice notes that become part of your journal.",
-        "NSCameraUsageDescription": "log.af uses the camera to attach photos to your journal entries.",
-        "NSPhotoLibraryUsageDescription": "log.af accesses your photo library to attach photos to your journal entries."
+        "NSMicrophoneUsageDescription": "trace uses the microphone to record voice notes for your journal.",
+        "NSCameraUsageDescription": "trace uses the camera to attach photos to your journal entries.",
+        "NSPhotoLibraryUsageDescription": "trace accesses your photo library to attach memories to your journal."
       }
     },
     "android": {
-      "package": "af.log.app",
-      "permissions": ["RECORD_AUDIO", "CAMERA", "READ_MEDIA_IMAGES"]
+      "package": "com.trace.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -44,6 +53,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2fc96ff0-cb06-4d48-89df-bce401541c8f"
+      }
     }
   }
 }
