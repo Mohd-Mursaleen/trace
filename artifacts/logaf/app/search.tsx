@@ -19,7 +19,11 @@ import { SearchResultSheet } from "@/components/SearchResultSheet";
 import { VoiceRecorderButton } from "@/components/VoiceRecorderButton";
 import { useColors } from "@/hooks/useColors";
 import { useJournalStore } from "@/hooks/useJournalStore";
-import { SearchResult, searchMemories } from "@/lib/supermemory";
+import {
+  SearchResult,
+  fetchSearchSuggestions,
+  searchMemories,
+} from "@/lib/supermemory";
 
 const SEARCH_SUGGESTIONS = [
   "what have I been focused on lately?",
@@ -88,28 +92,112 @@ function getDateFilter(filterKey: string) {
 }
 
 function formatDisplayDate(value?: string): string {
-  if (!value) return "Unknown date";
-  const direct = new Date(value);
-  if (!Number.isNaN(direct.getTime())) {
-    return direct.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    });
-  }
+  if (!value) return "";
+  const d = new Date(value.length === 10 ? `${value}T00:00:00` : value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
-  const isoDate = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  if (isoDate) {
-    const parsed = new Date(`${isoDate[1]}-${isoDate[2]}-${isoDate[3]}T00:00:00.000Z`);
-    return parsed.toLocaleDateString("en-US", {
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-  }
+function getResultDate(result: SearchResult): Date | null {
+  const raw = result.metadata?.date ?? result.updatedAt;
+  if (!raw) return null;
+  const parsed = new Date(raw.length === 10 ? `${raw}T00:00:00` : raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
 
-  return value;
+function applyDateFilter(results: SearchResult[], filterKey: string): SearchResult[] {
+  const dateFrom = getDateFilter(filterKey);
+  if (!dateFrom) return results;
+  const cutoff = new Date(`${dateFrom}T00:00:00`);
+  return results.filter((result) => {
+    const d = getResultDate(result);
+    return d ? d >= cutoff : true;
+  });
+}
+
+function SkeletonCard() {
+  const colors = useColors();
+  const opacity = useRef(new Animated.Value(0.5)).current;
+  const shimmer = "rgba(180, 200, 220, 0.15)";
+
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.5,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [opacity]);
+
+  return (
+    <Animated.View
+      style={{
+        opacity,
+        backgroundColor: colors.card,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: 16,
+        gap: 10,
+      }}
+    >
+      <View
+        style={{
+          width: 110,
+          height: 10,
+          borderRadius: 5,
+          backgroundColor: shimmer,
+        }}
+      />
+      <View
+        style={{
+          width: "100%",
+          height: 13,
+          borderRadius: 6,
+          backgroundColor: shimmer,
+        }}
+      />
+      <View
+        style={{
+          width: "80%",
+          height: 13,
+          borderRadius: 6,
+          backgroundColor: shimmer,
+        }}
+      />
+      <View
+        style={{
+          width: "55%",
+          height: 13,
+          borderRadius: 6,
+          backgroundColor: shimmer,
+        }}
+      />
+      <View
+        style={{
+          width: "100%",
+          height: 2,
+          borderRadius: 1,
+          backgroundColor: shimmer,
+        }}
+      />
+    </Animated.View>
+  );
 }
 
 export default function SearchScreen() {
@@ -118,6 +206,7 @@ export default function SearchScreen() {
   const { profile } = useJournalStore();
 
   const [query, setQuery] = useState("");
+  const [allResults, setAllResults] = useState<SearchResult[]>([]);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>("all");
@@ -126,12 +215,11 @@ export default function SearchScreen() {
   const [error, setError] = useState<string | null>(null);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
   const [chipStartIndex, setChipStartIndex] = useState(0);
+  const [profileSuggestions, setProfileSuggestions] = useState<string[]>([]);
   const [inputFocused, setInputFocused] = useState(false);
 
   const placeholderOpacity = useRef(new Animated.Value(1)).current;
-  const skeletonOpacity = useRef(new Animated.Value(0.45)).current;
   const inputRef = useRef<TextInput | null>(null);
-  const queryRef = useRef(query);
   const currentSuggestion = SEARCH_SUGGESTIONS[suggestionIndex] ?? SEARCH_SUGGESTIONS[0]!;
   const searchBarHighlighted = inputFocused || query.trim().length > 0;
   const visibleSuggestionChips = useMemo(() => {
@@ -141,10 +229,9 @@ export default function SearchScreen() {
       return SEARCH_CHIP_SUGGESTIONS[index]!;
     });
   }, [chipStartIndex]);
-
-  useEffect(() => {
-    queryRef.current = query;
-  }, [query]);
+  const suggestionPills = profileSuggestions.length
+    ? profileSuggestions
+    : visibleSuggestionChips;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -173,28 +260,30 @@ export default function SearchScreen() {
   }, []);
 
   useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(skeletonOpacity, {
-          toValue: 0.8,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.timing(skeletonOpacity, {
-          toValue: 0.45,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, [skeletonOpacity]);
+    if (!profile.supermemoryKey?.trim()) {
+      setProfileSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    fetchSearchSuggestions(
+      profile.supermemoryKey,
+      profile.supermemoryContainerTag || null,
+    ).then((res) => {
+      if (cancelled) return;
+      if (res.success && res.suggestions?.length) {
+        setProfileSuggestions(res.suggestions);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [profile.supermemoryContainerTag, profile.supermemoryKey]);
 
   const handleSearch = useCallback(
     async (text: string) => {
       const value = text.trim();
       if (!value) {
+        setAllResults([]);
         setResults([]);
         setHasSearched(false);
         setError(null);
@@ -209,32 +298,38 @@ export default function SearchScreen() {
       setLoading(true);
       setHasSearched(true);
       setError(null);
-      console.log("[search] start", { query: value, filter: activeFilter });
+      console.log("[search] start", {
+        query: value,
+        filter: activeFilter,
+        containerTag: profile.supermemoryContainerTag?.trim() || null,
+      });
 
-      const dateFrom =
-        activeFilter && activeFilter !== "all" ? getDateFilter(activeFilter) : null;
-      const res = await searchMemories(profile.supermemoryKey, value, dateFrom);
+      const res = await searchMemories(
+        profile.supermemoryKey,
+        value,
+        profile.supermemoryContainerTag || null,
+      );
       if (res.success && res.data) {
         console.log("[search] success", {
-          total: res.data.total,
           results: res.data.results?.length ?? 0,
         });
-        setResults(res.data.results ?? []);
+        const nextAll = res.data.results ?? [];
+        setAllResults(nextAll);
+        setResults(applyDateFilter(nextAll, activeFilter));
       } else {
         console.log("[search] failed", res.error);
+        setAllResults([]);
         setResults([]);
         setError(res.error ?? "Search failed.");
       }
       setLoading(false);
     },
-    [activeFilter, profile.supermemoryKey],
+    [activeFilter, profile.supermemoryContainerTag, profile.supermemoryKey],
   );
 
   useEffect(() => {
-    if (queryRef.current.trim()) {
-      void handleSearch(queryRef.current);
-    }
-  }, [activeFilter, handleSearch]);
+    setResults(applyDateFilter(allResults, activeFilter));
+  }, [activeFilter, allResults]);
 
   const showPrompt = !loading && !hasSearched && query.trim().length === 0;
   const showNoResults = !loading && hasSearched && results.length === 0 && !error;
@@ -340,6 +435,7 @@ export default function SearchScreen() {
           <Pressable
             onPress={() => {
               setQuery("");
+              setAllResults([]);
               setResults([]);
               setHasSearched(false);
               setError(null);
@@ -369,7 +465,7 @@ export default function SearchScreen() {
         )}
       </View>
 
-      {!loading && results.length > 0 ? (
+      {!loading && allResults.length > 0 ? (
         <View style={styles.filtersWrap}>
           {FILTER_OPTIONS.map((item) => {
             const active = activeFilter === item.key;
@@ -397,9 +493,9 @@ export default function SearchScreen() {
             );
           })}
         </View>
-      ) : (
+      ) : !loading && query.trim().length === 0 ? (
         <View style={styles.suggestionsWrap}>
-          {visibleSuggestionChips.map((item, idx) => (
+          {suggestionPills.map((item, idx) => (
             <Pressable
               key={`${item}-${idx}`}
               onPress={() => {
@@ -429,7 +525,7 @@ export default function SearchScreen() {
             </Pressable>
           ))}
         </View>
-      )}
+      ) : null}
 
       <ScrollView
         style={{ flex: 1 }}
@@ -439,20 +535,10 @@ export default function SearchScreen() {
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
-          <View style={{ gap: 12, marginTop: 14 }}>
-            {[0, 1, 2].map((i) => (
-              <Animated.View
-                key={i}
-                style={[
-                  styles.skeletonCard,
-                  {
-                    borderColor: colors.border,
-                    backgroundColor: colors.card,
-                    opacity: skeletonOpacity,
-                  },
-                ]}
-              />
-            ))}
+          <View style={{ gap: 10, paddingHorizontal: 16, paddingTop: 12 }}>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
           </View>
         ) : null}
 
@@ -494,10 +580,10 @@ export default function SearchScreen() {
                 })}
               >
                 <Text style={[styles.resultDate, { color: colors.accent }]}>
-                  {formatDisplayDate(result.metadata?.date || result.updatedAt)}
+                  {formatDisplayDate(result.metadata?.date ?? result.updatedAt)}
                 </Text>
                 <Text numberOfLines={3} style={[styles.resultBody, { color: colors.text }]}>
-                  {result.memory || result.chunk || ""}
+                  {result.memory ?? ""}
                 </Text>
                 <View
                   style={[

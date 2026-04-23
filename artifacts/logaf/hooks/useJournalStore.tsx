@@ -35,6 +35,16 @@ type Ctx = {
 
 const JournalContext = createContext<Ctx | null>(null);
 
+function normalizeProfile(profile: Profile): Profile {
+  return {
+    ...profile,
+    supermemoryContainerTag:
+      typeof profile.supermemoryContainerTag === "string"
+        ? profile.supermemoryContainerTag
+        : "",
+  };
+}
+
 async function ensureImagesDir(): Promise<string> {
   const dir = `${FileSystem.documentDirectory ?? ""}journal_images/`;
   try {
@@ -56,7 +66,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     (async () => {
       const [p, i] = await Promise.all([loadProfile(), loadIndex()]);
-      setProfile(p);
+      setProfile(normalizeProfile(p));
       setIndex(i);
       setReady(true);
     })();
@@ -64,7 +74,7 @@ export function JournalProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = useCallback(async (patch: Partial<Profile>) => {
     setProfile((prev) => {
-      const next = { ...prev, ...patch };
+      const next = normalizeProfile({ ...prev, ...patch });
       void saveProfile(next);
       return next;
     });

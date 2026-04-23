@@ -5,6 +5,7 @@ export type Profile = {
   photoUri: string;
   supermemoryEnabled: boolean;
   supermemoryKey: string;
+  supermemoryContainerTag: string;
   hasCompletedOnboarding: boolean;
 };
 
@@ -32,6 +33,7 @@ export const DEFAULT_PROFILE: Profile = {
   photoUri: "",
   supermemoryEnabled: false,
   supermemoryKey: "",
+  supermemoryContainerTag: "",
   hasCompletedOnboarding: false,
 };
 

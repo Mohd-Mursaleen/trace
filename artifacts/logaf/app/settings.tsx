@@ -390,24 +390,57 @@ export default function SettingsScreen() {
               </View>
             </Row>
             {profile.supermemoryEnabled ? (
-              <Row noBorder>
-                <Pressable
-                  onPress={() => setSmModalVisible(true)}
-                  style={({ pressed }) => [
-                    styles.updateBtn,
-                    {
-                      backgroundColor: colors.cardAlt,
-                      borderColor: colors.border,
-                      opacity: pressed ? 0.7 : 1,
-                    },
-                  ]}
-                >
-                  <Feather name="refresh-cw" size={13} color={colors.textMuted} />
-                  <Text style={[styles.updateBtnText, { color: colors.textMuted }]}>
-                    Update API key
+              <>
+                <Row>
+                  <Pressable
+                    onPress={() => setSmModalVisible(true)}
+                    style={({ pressed }) => [
+                      styles.updateBtn,
+                      {
+                        backgroundColor: colors.cardAlt,
+                        borderColor: colors.border,
+                        opacity: pressed ? 0.7 : 1,
+                      },
+                    ]}
+                  >
+                    <Feather name="refresh-cw" size={13} color={colors.textMuted} />
+                    <Text style={[styles.updateBtnText, { color: colors.textMuted }]}>
+                      Update API key
+                    </Text>
+                  </Pressable>
+                </Row>
+                <Row noBorder>
+                  <Text style={[styles.inputLabel, { color: colors.textDim }]}>
+                    Space Name (optional)
                   </Text>
-                </Pressable>
-              </Row>
+                  <TextInput
+                    value={profile.supermemoryContainerTag ?? ""}
+                    onChangeText={(val) =>
+                      void updateProfile({ supermemoryContainerTag: val.trim() })
+                    }
+                    placeholder="Leave blank for default space"
+                    placeholderTextColor={colors.textMuted}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: colors.cardAlt,
+                        borderColor: colors.border,
+                        color: colors.text,
+                      },
+                    ]}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    selectionColor={colors.accent}
+                  />
+                  <Text style={[styles.helperText, { color: colors.textDim }]}>
+                    Found in your Supermemory dashboard under Spaces. Leave blank - all
+                    entries go to your default space and search works automatically.
+                  </Text>
+                  <Text style={[styles.helperText, { color: colors.textDim }]}>
+                    Only set this if your journal data lives in a named space.
+                  </Text>
+                </Row>
+              </>
             ) : null}
           </SectionCard>
 
@@ -763,6 +796,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     marginTop: 2,
+  },
+  helperText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    lineHeight: 18,
   },
   privacyRow: {
     flexDirection: "row",

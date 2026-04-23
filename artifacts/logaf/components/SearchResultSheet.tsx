@@ -16,7 +16,7 @@ type Props = {
 
 function formatDisplayDate(input?: string): string {
   if (!input) return "Unknown date";
-  const d = new Date(input);
+  const d = new Date(input.length === 10 ? `${input}T00:00:00` : input);
   if (!Number.isNaN(d.getTime())) {
     return d.toLocaleDateString("en-US", {
       month: "long",
@@ -64,10 +64,9 @@ export function SearchResultSheet({ result, visible, onClose, localEntry }: Prop
     };
   }, [visible, result, loadEntry]);
 
-  const contentText = useMemo(
-    () => resolvedEntry?.text || result?.memory || result?.chunk || "",
-    [resolvedEntry, result],
-  );
+  const fullText = useMemo(() => result?.memory ?? "", [result]);
+
+  const contentText = resolvedEntry?.text || fullText;
 
   return (
     <Modal
@@ -107,14 +106,20 @@ export function SearchResultSheet({ result, visible, onClose, localEntry }: Prop
               <>
                 <View style={[styles.separator, { backgroundColor: colors.border, marginTop: 26 }]} />
                 <Text style={[styles.photosLabel, { color: colors.textDim }]}>PHOTOS</Text>
-                {resolvedEntry.images.map((uri, index) => (
-                  <Image
-                    key={`${uri}-${index}`}
-                    source={{ uri }}
-                    style={styles.photo}
-                    contentFit="cover"
-                  />
-                ))}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.photoStrip}
+                >
+                  {resolvedEntry.images.map((uri, index) => (
+                    <Image
+                      key={`${uri}-${index}`}
+                      source={{ uri }}
+                      style={styles.photoThumb}
+                      contentFit="cover"
+                    />
+                  ))}
+                </ScrollView>
               </>
             ) : null}
           </ScrollView>
@@ -181,10 +186,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
     marginBottom: 8,
   },
-  photo: {
-    width: "100%",
-    height: 220,
-    borderRadius: 12,
-    marginTop: 16,
+  photoStrip: {
+    gap: 10,
+    paddingTop: 8,
+    paddingBottom: 2,
+  },
+  photoThumb: {
+    width: 120,
+    height: 120,
+    borderRadius: 10,
   },
 });
