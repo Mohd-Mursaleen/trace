@@ -108,9 +108,9 @@ export function BigMicButton({ onTranscript }: Props) {
       borderColor: color,
     }));
 
-  const ring1Style = ringStyle(r1, isRecording ? colors.danger : colors.accent);
-  const ring2Style = ringStyle(r2, isRecording ? colors.danger : colors.accent);
-  const ring3Style = ringStyle(r3, isRecording ? colors.danger : colors.accent);
+  const ring1Style = ringStyle(r1, isRecording ? colors.recording : colors.accent);
+  const ring2Style = ringStyle(r2, isRecording ? colors.recording : colors.accent);
+  const ring3Style = ringStyle(r3, isRecording ? colors.recording : colors.accent);
 
   const btnStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],
@@ -123,7 +123,7 @@ export function BigMicButton({ onTranscript }: Props) {
   const barStyle5 = useAnimatedStyle(() => ({ height: b5.value }));
 
   const btnBg = isRecording
-    ? colors.danger
+    ? colors.recording
     : isProcessing
       ? colors.cardHigh
       : colors.accent;
@@ -157,7 +157,7 @@ export function BigMicButton({ onTranscript }: Props) {
               {
                 backgroundColor:
                   isRecording
-                    ? colors.danger
+                    ? colors.recording
                     : isProcessing
                       ? colors.textMuted
                       : colors.textDim,
@@ -173,7 +173,7 @@ export function BigMicButton({ onTranscript }: Props) {
           styles.statusText,
           {
             color: isRecording
-              ? colors.danger
+              ? colors.recording
               : isProcessing
                 ? colors.textSecondary
                 : colors.textMuted,
@@ -198,7 +198,7 @@ export function BigMicButton({ onTranscript }: Props) {
             {
               backgroundColor: btnBg,
               // Glow
-              shadowColor: isRecording ? colors.danger : colors.accent,
+              shadowColor: isRecording ? colors.recording : colors.accent,
               shadowOpacity: isRecording ? 0.6 : 0.45,
             },
           ]}
