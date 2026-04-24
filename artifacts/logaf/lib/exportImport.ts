@@ -98,8 +98,8 @@ export async function exportData(): Promise<{
     });
 
     return { success: true, count: entries.length };
-  } catch (e: any) {
-    return { success: false, error: e?.message ?? "Export failed" };
+  } catch (e: unknown) {
+    return { success: false, error: e instanceof Error ? e.message : "Export failed" };
   }
 }
 
@@ -210,7 +210,7 @@ export async function importData(
     }
 
     return { success: true, imported, skipped };
-  } catch (e: any) {
-    return { success: false, error: e?.message ?? "Import failed" };
+  } catch (e: unknown) {
+    return { success: false, error: e instanceof Error ? e.message : "Import failed" };
   }
 }

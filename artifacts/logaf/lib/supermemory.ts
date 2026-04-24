@@ -30,6 +30,18 @@ export type ProfileResponse = {
   };
 };
 
+function abortMessage(timeoutMs: number): string {
+  return `timeout after ${timeoutMs / 1000}s`;
+}
+
+function catchMessage(e: unknown, timeoutMs?: number): string {
+  if (e instanceof Error) {
+    if (e.name === "AbortError" && timeoutMs != null) return abortMessage(timeoutMs);
+    return e.message;
+  }
+  return "network error";
+}
+
 export async function validateSupermemoryKey(
   key: string,
 ): Promise<{ valid: boolean; error?: string }> {
@@ -53,13 +65,9 @@ export async function validateSupermemoryKey(
       return { valid: false, error: "Invalid API key" };
     }
     return { valid: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     clearTimeout(timer);
-    const msg =
-      e?.name === "AbortError"
-        ? "Request timed out"
-        : (e?.message ?? "Network error");
-    return { valid: false, error: msg };
+    return { valid: false, error: catchMessage(e, TIMEOUT_MS) };
   }
 }
 
@@ -76,7 +84,7 @@ export async function syncToSupermemory(
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    console.log("[supermemory] syncing date:", date);
+    if (__DEV__) console.log("[supermemory] syncing date:", date);
     const res = await fetch(`${BASE}/v3/documents`, {
       method: "POST",
       signal: controller.signal,
@@ -109,19 +117,16 @@ export async function syncToSupermemory(
 
     if (!res.ok) {
       const body = await res.text();
-      console.log("[supermemory] error:", res.status, body);
+      if (__DEV__) console.log("[supermemory] error:", res.status, body);
       return { success: false, error: `${res.status}: ${body}` };
     }
 
-    console.log("[supermemory] synced successfully:", date);
+    if (__DEV__) console.log("[supermemory] synced successfully:", date);
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     clearTimeout(timer);
-    const msg =
-      e?.name === "AbortError"
-        ? `timeout after ${TIMEOUT_MS / 1000}s`
-        : (e?.message ?? "network error");
-    console.log("[supermemory] failed:", msg);
+    const msg = catchMessage(e, TIMEOUT_MS);
+    if (__DEV__) console.log("[supermemory] failed:", msg);
     return { success: false, error: msg };
   }
 }
@@ -153,10 +158,12 @@ export async function searchMemories(
   const timer = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
 
   try {
-    console.log("[supermemory.search] request", {
-      query,
-      containerTag: containerTag?.trim() ?? null,
-    });
+    if (__DEV__) {
+      console.log("[supermemory.search] request", {
+        query,
+        containerTag: containerTag?.trim() ?? null,
+      });
+    }
     const res = await fetch(`${BASE}/v4/search`, {
       method: "POST",
       signal: controller.signal,
@@ -170,22 +177,21 @@ export async function searchMemories(
 
     if (!res.ok) {
       const errText = await res.text();
-      console.log("[supermemory.search] error", res.status, errText);
+      if (__DEV__) console.log("[supermemory.search] error", res.status, errText);
       return { success: false, error: `${res.status}: ${errText}` };
     }
 
     const data = (await res.json()) as SearchResponse;
-    console.log("[supermemory.search] success", {
-      count: data?.results?.length ?? 0,
-    });
+    if (__DEV__) {
+      console.log("[supermemory.search] success", {
+        count: data?.results?.length ?? 0,
+      });
+    }
     return { success: true, data };
-  } catch (e: any) {
+  } catch (e: unknown) {
     clearTimeout(timer);
-    const msg =
-      e?.name === "AbortError"
-        ? `timeout after ${SEARCH_TIMEOUT_MS / 1000}s`
-        : (e?.message ?? "network error");
-    console.log("[supermemory.search] failed", msg);
+    const msg = catchMessage(e, SEARCH_TIMEOUT_MS);
+    if (__DEV__) console.log("[supermemory.search] failed", msg);
     return { success: false, error: msg };
   }
 }
@@ -215,13 +221,9 @@ export async function fetchProfile(
 
     const data = (await res.json()) as ProfileResponse;
     return { success: true, data };
-  } catch (e: any) {
+  } catch (e: unknown) {
     clearTimeout(timer);
-    const msg =
-      e?.name === "AbortError"
-        ? `timeout after ${SEARCH_TIMEOUT_MS / 1000}s`
-        : (e?.message ?? "network error");
-    return { success: false, error: msg };
+    return { success: false, error: catchMessage(e, SEARCH_TIMEOUT_MS) };
   }
 }
 
@@ -252,15 +254,15 @@ export async function fetchSearchSuggestions(
     if (!res.ok) return { success: false, error: `${res.status}` };
 
     const data = await res.json();
-    const raw: string[] = data?.profile?.dynamic ?? [];
+    const raw: string[] = (data as { profile?: { dynamic?: string[] } })?.profile?.dynamic ?? [];
     const suggestions = raw
       .slice(0, 6)
       .map((s) => s.split(" ").slice(0, 5).join(" ").trim())
       .filter(Boolean);
 
     return { success: true, suggestions };
-  } catch (e: any) {
+  } catch (e: unknown) {
     clearTimeout(timer);
-    return { success: false, error: e?.message ?? "network error" };
+    return { success: false, error: catchMessage(e) };
   }
 }

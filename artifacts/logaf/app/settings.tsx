@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DataButton, Row, SectionCard, SectionTitle } from "@/components/SettingsComponents";
 import { DotGrid } from "@/components/DotGrid";
 import { SupermemorySetupModal } from "@/components/SupermemorySetupModal";
 import { useColors } from "@/hooks/useColors";
@@ -102,7 +103,9 @@ export default function SettingsScreen() {
       quality: 0.85,
     });
     if (result.canceled) return;
-    const local = await copyImageToLocal(result.assets[0]!.uri);
+    const asset = result.assets[0];
+    if (!asset) return;
+    const local = await copyImageToLocal(asset.uri);
     await updateProfile({ photoUri: local });
   };
 
@@ -510,76 +513,6 @@ export default function SettingsScreen() {
   );
 }
 
-function SectionTitle({ text }: { text: string }) {
-  const colors = useColors();
-  return <Text style={[styles.sectionTitle, { color: colors.textDim }]}>{text}</Text>;
-}
-
-function SectionCard({ children }: { children: React.ReactNode }) {
-  const colors = useColors();
-  return (
-    <View
-      style={[
-        styles.sectionCard,
-        {
-          borderColor: colors.border,
-          backgroundColor: colors.card,
-        },
-      ]}
-    >
-      {children}
-    </View>
-  );
-}
-
-function Row({ children, noBorder = false }: { children: React.ReactNode; noBorder?: boolean }) {
-  const colors = useColors();
-  return (
-    <View
-      style={[
-        styles.row,
-        !noBorder && {
-          borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: colors.border,
-        },
-      ]}
-    >
-      {children}
-    </View>
-  );
-}
-
-function DataButton({
-  icon,
-  label,
-  onPress,
-  disabled,
-}: {
-  icon: React.ComponentProps<typeof Feather>["name"];
-  label: string;
-  onPress: () => void;
-  disabled: boolean;
-}) {
-  const colors = useColors();
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [
-        styles.dataBtn,
-        {
-          backgroundColor: colors.cardAlt,
-          borderColor: colors.border,
-          opacity: pressed || disabled ? 0.6 : 1,
-        },
-      ]}
-    >
-      <Feather name={icon} size={16} color={colors.text} />
-      <Text style={[styles.dataBtnText, { color: colors.text }]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   root: { flex: 1 },
   header: {
@@ -685,25 +618,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     textAlign: "center",
   },
-  sectionTitle: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 11,
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
-    marginLeft: 20,
-    marginBottom: 8,
-    marginTop: 24,
-  },
-  sectionCard: {
-    marginHorizontal: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  row: {
-    padding: 14,
-    gap: 10,
-  },
   photoRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -776,20 +690,6 @@ const styles = StyleSheet.create({
   dataRow: {
     flexDirection: "row",
     gap: 10,
-  },
-  dataBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 13,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  dataBtnText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 14,
   },
   dataInfo: {
     fontFamily: "Inter_400Regular",

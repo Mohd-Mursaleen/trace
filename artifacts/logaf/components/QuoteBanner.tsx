@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { useRotatingIndex } from "@/hooks/useRotatingIndex";
 
 const QUOTES = [
   "Your future agent will only be as wise as the memories you give it today.",
@@ -26,27 +26,7 @@ const FADE_MS = 600;
 
 export function QuoteBanner() {
   const colors = useColors();
-  const [index, setIndex] = useState(0);
-  const opacity = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    const cycle = setInterval(() => {
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: FADE_MS,
-        useNativeDriver: true,
-      }).start(() => {
-        setIndex((i) => (i + 1) % QUOTES.length);
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: FADE_MS,
-          useNativeDriver: true,
-        }).start();
-      });
-    }, HOLD_MS + FADE_MS * 2);
-
-    return () => clearInterval(cycle);
-  }, []);
+  const [index, opacity] = useRotatingIndex(QUOTES.length, HOLD_MS + FADE_MS * 2, FADE_MS);
 
   const displayIndex = String(index + 1).padStart(2, "0");
   const total = String(QUOTES.length).padStart(2, "0");

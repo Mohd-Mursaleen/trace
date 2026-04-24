@@ -44,7 +44,9 @@ export function ImageStrip({ images, onChange }: Props) {
       quality: 0.85,
     });
     if (result.canceled) return;
-    const local = await copyImageToLocal(result.assets[0]!.uri);
+    const asset = result.assets[0];
+    if (!asset) return;
+    const local = await copyImageToLocal(asset.uri);
     onChange([...images, local]);
   };
 

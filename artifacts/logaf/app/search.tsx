@@ -1,5 +1,4 @@
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -15,10 +14,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DotGrid } from "@/components/DotGrid";
+import { SearchLockScreen } from "@/components/SearchLockScreen";
 import { SearchResultSheet } from "@/components/SearchResultSheet";
 import { VoiceRecorderButton } from "@/components/VoiceRecorderButton";
 import { useColors } from "@/hooks/useColors";
 import { useJournalStore } from "@/hooks/useJournalStore";
+import { useRotatingIndex } from "@/hooks/useRotatingIndex";
 import {
   SearchResult,
   fetchSearchSuggestions,
@@ -46,7 +47,7 @@ const SEARCH_SUGGESTIONS = [
   "show my recent reflections",
   "what patterns do you see in my journal?",
   "what should I revisit from last month?",
-];
+] as const;
 
 const SEARCH_CHIP_SUGGESTIONS = [
   "Tell me my moments from the past month",
@@ -128,16 +129,8 @@ function SkeletonCard() {
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.5,
-          duration: 700,
-          useNativeDriver: true,
-        }),
+        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 0.5, duration: 700, useNativeDriver: true }),
       ]),
     );
     pulse.start();
@@ -156,47 +149,47 @@ function SkeletonCard() {
         gap: 10,
       }}
     >
-      <View
-        style={{
-          width: 110,
-          height: 10,
-          borderRadius: 5,
-          backgroundColor: shimmer,
-        }}
-      />
-      <View
-        style={{
-          width: "100%",
-          height: 13,
-          borderRadius: 6,
-          backgroundColor: shimmer,
-        }}
-      />
-      <View
-        style={{
-          width: "80%",
-          height: 13,
-          borderRadius: 6,
-          backgroundColor: shimmer,
-        }}
-      />
-      <View
-        style={{
-          width: "55%",
-          height: 13,
-          borderRadius: 6,
-          backgroundColor: shimmer,
-        }}
-      />
-      <View
-        style={{
-          width: "100%",
-          height: 2,
-          borderRadius: 1,
-          backgroundColor: shimmer,
-        }}
-      />
+      <View style={{ width: 110, height: 10, borderRadius: 5, backgroundColor: shimmer }} />
+      <View style={{ width: "100%", height: 13, borderRadius: 6, backgroundColor: shimmer }} />
+      <View style={{ width: "80%", height: 13, borderRadius: 6, backgroundColor: shimmer }} />
+      <View style={{ width: "55%", height: 13, borderRadius: 6, backgroundColor: shimmer }} />
+      <View style={{ width: "100%", height: 2, borderRadius: 1, backgroundColor: shimmer }} />
     </Animated.View>
+  );
+}
+
+function SearchResultCard({ result, onPress }: { result: SearchResult; onPress: () => void }) {
+  const colors = useColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        backgroundColor: pressed ? colors.cardAlt : colors.card,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: 16,
+        gap: 8,
+      })}
+    >
+      <Text style={[styles.resultDate, { color: colors.accent }]}>
+        {formatDisplayDate(result.metadata?.date ?? result.updatedAt)}
+      </Text>
+      <Text numberOfLines={3} style={[styles.resultBody, { color: colors.text }]}>
+        {result.memory ?? ""}
+      </Text>
+      <View style={[styles.scoreTrack, { backgroundColor: colors.border }]}>
+        <View
+          style={[
+            styles.scoreFill,
+            {
+              width: `${Math.round((result.similarity ?? 0) * 100)}%`,
+              backgroundColor: colors.accent,
+            },
+          ]}
+        />
+      </View>
+    </Pressable>
   );
 }
 
@@ -207,21 +200,33 @@ export default function SearchScreen() {
 
   const [query, setQuery] = useState("");
   const [allResults, setAllResults] = useState<SearchResult[]>([]);
-  const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [suggestionIndex, setSuggestionIndex] = useState(0);
   const [chipStartIndex, setChipStartIndex] = useState(0);
   const [profileSuggestions, setProfileSuggestions] = useState<string[]>([]);
   const [inputFocused, setInputFocused] = useState(false);
 
-  const placeholderOpacity = useRef(new Animated.Value(1)).current;
+  // Placeholder cycles: 3000ms per item, 180ms fade-out, 220ms fade-in
+  const [suggestionIndex, placeholderOpacity] = useRotatingIndex(
+    SEARCH_SUGGESTIONS.length,
+    3000,
+    180,
+    220,
+  );
   const inputRef = useRef<TextInput | null>(null);
+
+  // Derive filtered results from allResults — no separate state needed.
+  const results = useMemo(
+    () => applyDateFilter(allResults, activeFilter),
+    [allResults, activeFilter],
+  );
+
   const currentSuggestion = SEARCH_SUGGESTIONS[suggestionIndex] ?? SEARCH_SUGGESTIONS[0]!;
   const searchBarHighlighted = inputFocused || query.trim().length > 0;
+
   const visibleSuggestionChips = useMemo(() => {
     if (SEARCH_CHIP_SUGGESTIONS.length <= 4) return SEARCH_CHIP_SUGGESTIONS;
     return Array.from({ length: 4 }, (_, idx) => {
@@ -229,28 +234,8 @@ export default function SearchScreen() {
       return SEARCH_CHIP_SUGGESTIONS[index]!;
     });
   }, [chipStartIndex]);
-  const suggestionPills = profileSuggestions.length
-    ? profileSuggestions
-    : visibleSuggestionChips;
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      Animated.timing(placeholderOpacity, {
-        toValue: 0,
-        duration: 180,
-        useNativeDriver: true,
-      }).start(() => {
-        setSuggestionIndex((prev) => (prev + 1) % SEARCH_SUGGESTIONS.length);
-        Animated.timing(placeholderOpacity, {
-          toValue: 1,
-          duration: 220,
-          useNativeDriver: true,
-        }).start();
-      });
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [placeholderOpacity]);
+  const suggestionPills = profileSuggestions.length ? profileSuggestions : visibleSuggestionChips;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -274,9 +259,7 @@ export default function SearchScreen() {
         setProfileSuggestions(res.suggestions);
       }
     });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [profile.supermemoryContainerTag, profile.supermemoryKey]);
 
   const handleSearch = useCallback(
@@ -284,7 +267,6 @@ export default function SearchScreen() {
       const value = text.trim();
       if (!value) {
         setAllResults([]);
-        setResults([]);
         setHasSearched(false);
         setError(null);
         return;
@@ -298,11 +280,13 @@ export default function SearchScreen() {
       setLoading(true);
       setHasSearched(true);
       setError(null);
-      console.log("[search] start", {
-        query: value,
-        filter: activeFilter,
-        containerTag: profile.supermemoryContainerTag?.trim() || null,
-      });
+      if (__DEV__) {
+        console.log("[search] start", {
+          query: value,
+          filter: activeFilter,
+          containerTag: profile.supermemoryContainerTag?.trim() || null,
+        });
+      }
 
       const res = await searchMemories(
         profile.supermemoryKey,
@@ -310,16 +294,11 @@ export default function SearchScreen() {
         profile.supermemoryContainerTag || null,
       );
       if (res.success && res.data) {
-        console.log("[search] success", {
-          results: res.data.results?.length ?? 0,
-        });
-        const nextAll = res.data.results ?? [];
-        setAllResults(nextAll);
-        setResults(applyDateFilter(nextAll, activeFilter));
+        if (__DEV__) console.log("[search] success", { results: res.data.results?.length ?? 0 });
+        setAllResults(res.data.results ?? []);
       } else {
-        console.log("[search] failed", res.error);
+        if (__DEV__) console.log("[search] failed", res.error);
         setAllResults([]);
-        setResults([]);
         setError(res.error ?? "Search failed.");
       }
       setLoading(false);
@@ -327,53 +306,12 @@ export default function SearchScreen() {
     [activeFilter, profile.supermemoryContainerTag, profile.supermemoryKey],
   );
 
-  useEffect(() => {
-    setResults(applyDateFilter(allResults, activeFilter));
-  }, [activeFilter, allResults]);
-
   const showPrompt = !loading && !hasSearched && query.trim().length === 0;
   const showNoResults = !loading && hasSearched && results.length === 0 && !error;
 
-  const lockScreen = useMemo(() => {
-    if (profile.supermemoryEnabled) return null;
-    return (
-      <View
-        style={[
-          styles.lockRoot,
-          {
-            backgroundColor: colors.background,
-            paddingTop: insets.top + 24,
-          },
-        ]}
-      >
-        <DotGrid />
-        <View style={styles.lockIconWrap}>
-          <View style={styles.lockHaloOuter} />
-          <View style={styles.lockHaloInner} />
-          <Feather name="lock" size={32} color={colors.accent} />
-        </View>
-        <Text style={[styles.lockTitle, { color: colors.text }]}>Search is locked</Text>
-        <Text style={[styles.lockBody, { color: colors.textMuted }]}>
-          Enable Supermemory to search your journal semantically - ask anything
-          about your past.
-        </Text>
-        <Pressable
-          onPress={() => router.push("/settings")}
-          style={[styles.lockBtn, { backgroundColor: colors.accent }]}
-        >
-          <Text style={styles.lockBtnText}>Enable in Settings</Text>
-        </Pressable>
-      </View>
-    );
-  }, [colors, insets.top, profile.supermemoryEnabled]);
-
-  if (lockScreen) {
-    return (
-      <View style={{ flex: 1 }}>
-        <StatusBar style="light" />
-        {lockScreen}
-      </View>
-    );
+  // All hooks called above — safe to early-return here.
+  if (!profile.supermemoryEnabled) {
+    return <SearchLockScreen topInset={insets.top} />;
   }
 
   return (
@@ -404,10 +342,7 @@ export default function SearchScreen() {
         <View style={styles.inputWrap}>
           {!query.length && !inputFocused && (
             <Animated.Text
-              style={[
-                styles.placeholder,
-                { color: colors.textDim, opacity: placeholderOpacity },
-              ]}
+              style={[styles.placeholder, { color: colors.textDim, opacity: placeholderOpacity }]}
               numberOfLines={1}
             >
               {currentSuggestion}
@@ -436,7 +371,6 @@ export default function SearchScreen() {
             onPress={() => {
               setQuery("");
               setAllResults([]);
-              setResults([]);
               setHasSearched(false);
               setError(null);
             }}
@@ -482,10 +416,7 @@ export default function SearchScreen() {
                 ]}
               >
                 <Text
-                  style={[
-                    styles.filterLabel,
-                    { color: active ? "#0a0a0a" : colors.textMuted },
-                  ]}
+                  style={[styles.filterLabel, { color: active ? "#0a0a0a" : colors.textMuted }]}
                 >
                   {item.label}
                 </Text>
@@ -511,15 +442,10 @@ export default function SearchScreen() {
                     : idx === 2
                       ? styles.suggestionChipBlock
                       : styles.suggestionChipRounded,
-                {
-                  borderColor: colors.accentRing,
-                },
+                { borderColor: colors.accentRing },
               ]}
             >
-              <Text
-                numberOfLines={2}
-                style={[styles.suggestionLabel, { color: colors.accent }]}
-              >
+              <Text numberOfLines={2} style={[styles.suggestionLabel, { color: colors.accent }]}>
                 {item}
               </Text>
             </Pressable>
@@ -567,43 +493,11 @@ export default function SearchScreen() {
         {!loading && results.length > 0 ? (
           <View style={{ gap: 12, marginTop: 14 }}>
             {results.map((result, idx) => (
-              <Pressable
+              <SearchResultCard
                 key={`${result.id}-${idx}`}
+                result={result}
                 onPress={() => setSelectedResult(result)}
-                style={({ pressed }) => ({
-                  backgroundColor: pressed ? colors.cardAlt : colors.card,
-                  borderRadius: 14,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  padding: 16,
-                  gap: 8,
-                })}
-              >
-                <Text style={[styles.resultDate, { color: colors.accent }]}>
-                  {formatDisplayDate(result.metadata?.date ?? result.updatedAt)}
-                </Text>
-                <Text numberOfLines={3} style={[styles.resultBody, { color: colors.text }]}>
-                  {result.memory ?? ""}
-                </Text>
-                <View
-                  style={[
-                    styles.scoreTrack,
-                    {
-                      backgroundColor: colors.border,
-                    },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.scoreFill,
-                      {
-                        width: `${Math.round((result.similarity ?? 0) * 100)}%`,
-                        backgroundColor: colors.accent,
-                      },
-                    ]}
-                  />
-                </View>
-              </Pressable>
+              />
             ))}
           </View>
         ) : null}
@@ -775,11 +669,6 @@ const styles = StyleSheet.create({
     borderRadius: 1,
     opacity: 0.6,
   },
-  skeletonCard: {
-    height: 104,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
   errorWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -790,54 +679,5 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     fontSize: 13,
     flex: 1,
-  },
-  lockRoot: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 32,
-  },
-  lockIconWrap: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 32,
-  },
-  lockHaloOuter: {
-    position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "rgba(196,244,65,0.06)",
-  },
-  lockHaloInner: {
-    position: "absolute",
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "rgba(196,244,65,0.1)",
-  },
-  lockTitle: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 20,
-    textAlign: "center",
-    letterSpacing: -0.3,
-  },
-  lockBody: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
-    textAlign: "center",
-    marginTop: 8,
-    lineHeight: 22,
-  },
-  lockBtn: {
-    marginTop: 28,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 999,
-  },
-  lockBtnText: {
-    fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
-    color: "#0a0a0a",
   },
 });
