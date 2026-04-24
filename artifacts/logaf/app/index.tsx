@@ -13,7 +13,6 @@ import { Legend } from "@/components/Legend";
 import { QuoteBanner } from "@/components/QuoteBanner";
 import { useColors } from "@/hooks/useColors";
 import { useJournalStore } from "@/hooks/useJournalStore";
-
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();

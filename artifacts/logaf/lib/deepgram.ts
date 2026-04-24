@@ -1,5 +1,20 @@
+/**
+ * Deepgram batch transcription.
+ *
+ * Model params tuned for speed + accuracy:
+ *   nova-3        → fastest, most accurate Deepgram model
+ *   language=multi → auto-detects and handles Hindi/English codeswitching
+ *   smart_format  → numbers, dates, currencies formatted correctly
+ *   punctuate     → adds punctuation for readable output
+ *   filler_words=false → strips um/uh/like for cleaner journal text
+ */
 const DEEPGRAM_URL =
-  "https://api.deepgram.com/v1/listen?model=nova-3&smart_format=true&punctuate=true";
+  "https://api.deepgram.com/v1/listen" +
+  "?model=nova-3" +
+  "&language=multi" +
+  "&smart_format=true" +
+  "&punctuate=true" +
+  "&filler_words=false";
 
 export const DEEPGRAM_KEY: string =
   process.env.EXPO_PUBLIC_DEEPGRAM_API_KEY ?? "";

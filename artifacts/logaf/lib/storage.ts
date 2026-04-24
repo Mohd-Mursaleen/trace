@@ -7,6 +7,11 @@ export type Profile = {
   supermemoryKey: string;
   supermemoryContainerTag: string;
   hasCompletedOnboarding: boolean;
+  reminderEnabled: boolean;
+  /** 0–23 */
+  reminderHour: number;
+  /** 0–59 */
+  reminderMinute: number;
 };
 
 export type JournalEntry = {
@@ -35,6 +40,9 @@ export const DEFAULT_PROFILE: Profile = {
   supermemoryKey: "",
   supermemoryContainerTag: "",
   hasCompletedOnboarding: false,
+  reminderEnabled: true,
+  reminderHour: 21,
+  reminderMinute: 0,
 };
 
 export async function loadProfile(): Promise<Profile> {

@@ -27,7 +27,7 @@ const BAR_W = 3;
 
 export function BigMicButton({ onTranscript }: Props) {
   const colors = useColors();
-  const { state, start, stop } = useVoiceRecorder(onTranscript);
+  const { state, interim, start, stop } = useVoiceRecorder(onTranscript);
 
   const isRecording = state === "recording";
   const isProcessing = state === "processing";
@@ -130,11 +130,14 @@ export function BigMicButton({ onTranscript }: Props) {
 
   const iconColor = isRecording || isProcessing ? "#ffffff" : "#0a0a0a";
 
-  const statusText = isRecording
-    ? "Listening… tap to stop"
-    : isProcessing
-      ? "Transcribing…"
-      : "Tap to dictate";
+  // Show live partial transcript while speaking; fall back to static status.
+  const statusText = isRecording && interim
+    ? interim
+    : isRecording
+      ? "Listening… tap to stop"
+      : isProcessing
+        ? "Transcribing…"
+        : "Tap to dictate";
 
   const onPress = async () => {
     if (isProcessing) return;

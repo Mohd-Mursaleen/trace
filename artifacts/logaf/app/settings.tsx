@@ -25,6 +25,12 @@ import { SupermemorySetupModal } from "@/components/SupermemorySetupModal";
 import { useColors } from "@/hooks/useColors";
 import { useJournalStore } from "@/hooks/useJournalStore";
 import { exportData, importData, type ConflictResolution } from "@/lib/exportImport";
+import {
+  cancelJournalReminder,
+  formatReminderTime,
+  requestNotificationPermission,
+  scheduleJournalReminder,
+} from "@/lib/notifications";
 import { fetchProfile, type ProfileResponse } from "@/lib/supermemory";
 
 function getMemberSince(indexDates: string[]): string {
@@ -126,6 +132,40 @@ export default function SettingsScreen() {
     setSmModalVisible(false);
     if (key) {
       await updateProfile({ supermemoryEnabled: true, supermemoryKey: key });
+    }
+  };
+
+  const handleReminderToggle = async () => {
+    if (profile.reminderEnabled) {
+      await cancelJournalReminder();
+      await updateProfile({ reminderEnabled: false });
+    } else {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        Alert.alert(
+          "Permission needed",
+          "Allow notifications so trace can remind you to write.",
+        );
+        return;
+      }
+      await scheduleJournalReminder(profile.reminderHour, profile.reminderMinute, profile.name);
+      await updateProfile({ reminderEnabled: true });
+    }
+  };
+
+  const adjustHour = async (delta: number) => {
+    const next = (profile.reminderHour + delta + 24) % 24;
+    await updateProfile({ reminderHour: next });
+    if (profile.reminderEnabled) {
+      await scheduleJournalReminder(next, profile.reminderMinute, profile.name);
+    }
+  };
+
+  const adjustMinute = async (delta: number) => {
+    const next = (profile.reminderMinute + delta + 60) % 60;
+    await updateProfile({ reminderMinute: next });
+    if (profile.reminderEnabled) {
+      await scheduleJournalReminder(profile.reminderHour, next, profile.name);
     }
   };
 
@@ -447,6 +487,101 @@ export default function SettingsScreen() {
             ) : null}
           </SectionCard>
 
+          <SectionTitle text="Reminder" />
+          <SectionCard>
+            <Row>
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[styles.toggleLabel, { color: colors.text }]}>
+                    Daily reminder
+                  </Text>
+                  {profile.reminderEnabled ? (
+                    <Text style={[styles.connectedBadge, { color: colors.accent }]}>
+                      ✓ {formatReminderTime(profile.reminderHour, profile.reminderMinute)}
+                    </Text>
+                  ) : null}
+                </View>
+                <Pressable
+                  onPress={() => void handleReminderToggle()}
+                  style={({ pressed }) => [
+                    styles.toggle,
+                    {
+                      backgroundColor: profile.reminderEnabled ? colors.accent : colors.cardHigh,
+                      borderColor: profile.reminderEnabled ? colors.accent : colors.borderStrong,
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.toggleKnob,
+                      {
+                        backgroundColor: profile.reminderEnabled ? "#0a0a0a" : colors.text,
+                        transform: [{ translateX: profile.reminderEnabled ? 18 : 0 }],
+                      },
+                    ]}
+                  />
+                </Pressable>
+              </View>
+            </Row>
+            {profile.reminderEnabled ? (
+              <Row noBorder>
+                <Text style={[styles.inputLabel, { color: colors.textDim }]}>Time</Text>
+                <View style={styles.timePicker}>
+                  {/* Hour control */}
+                  <View style={styles.timeUnit}>
+                    <Pressable
+                      onPress={() => void adjustHour(-1)}
+                      style={({ pressed }) => [styles.timeBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
+                    >
+                      <Feather name="chevron-up" size={14} color={colors.textMuted} />
+                    </Pressable>
+                    <Text style={[styles.timeValue, { color: colors.text }]}>
+                      {String(profile.reminderHour % 12 === 0 ? 12 : profile.reminderHour % 12).padStart(2, "0")}
+                    </Text>
+                    <Pressable
+                      onPress={() => void adjustHour(1)}
+                      style={({ pressed }) => [styles.timeBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
+                    >
+                      <Feather name="chevron-down" size={14} color={colors.textMuted} />
+                    </Pressable>
+                  </View>
+                  <Text style={[styles.timeColon, { color: colors.textMuted }]}>:</Text>
+                  {/* Minute control */}
+                  <View style={styles.timeUnit}>
+                    <Pressable
+                      onPress={() => void adjustMinute(-5)}
+                      style={({ pressed }) => [styles.timeBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
+                    >
+                      <Feather name="chevron-up" size={14} color={colors.textMuted} />
+                    </Pressable>
+                    <Text style={[styles.timeValue, { color: colors.text }]}>
+                      {String(profile.reminderMinute).padStart(2, "0")}
+                    </Text>
+                    <Pressable
+                      onPress={() => void adjustMinute(5)}
+                      style={({ pressed }) => [styles.timeBtn, { backgroundColor: colors.cardAlt, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
+                    >
+                      <Feather name="chevron-down" size={14} color={colors.textMuted} />
+                    </Pressable>
+                  </View>
+                  {/* AM/PM toggle */}
+                  <Pressable
+                    onPress={() => void adjustHour(profile.reminderHour < 12 ? 12 : -12)}
+                    style={({ pressed }) => [
+                      styles.ampmBtn,
+                      { backgroundColor: colors.cardAlt, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+                    ]}
+                  >
+                    <Text style={[styles.ampmText, { color: colors.accent }]}>
+                      {profile.reminderHour < 12 ? "AM" : "PM"}
+                    </Text>
+                  </Pressable>
+                </View>
+              </Row>
+            ) : null}
+          </SectionCard>
+
           <SectionTitle text="Data" />
           <SectionCard>
             <Row>
@@ -686,6 +821,48 @@ const styles = StyleSheet.create({
   updateBtnText: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
+  },
+  timePicker: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+  },
+  timeUnit: {
+    alignItems: "center",
+    gap: 6,
+  },
+  timeBtn: {
+    width: 34,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timeValue: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 22,
+    letterSpacing: -0.5,
+    minWidth: 34,
+    textAlign: "center",
+  },
+  timeColon: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 22,
+    marginBottom: 2,
+  },
+  ampmBtn: {
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginLeft: 4,
+  },
+  ampmText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    letterSpacing: 0.5,
   },
   dataRow: {
     flexDirection: "row",

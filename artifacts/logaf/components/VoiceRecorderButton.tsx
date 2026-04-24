@@ -21,7 +21,7 @@ type Props = {
 
 export function VoiceRecorderButton({ onTranscript, compact = false }: Props) {
   const colors = useColors();
-  const { state, start, stop } = useVoiceRecorder(onTranscript);
+  const { state, interim, start, stop } = useVoiceRecorder(onTranscript);
   const pulse = useSharedValue(1);
 
   useEffect(() => {
@@ -54,12 +54,15 @@ export function VoiceRecorderButton({ onTranscript, compact = false }: Props) {
     }
   };
 
+  // Show live partial transcript while speaking; fall back to static label.
   const label =
-    state === "recording"
-      ? "Listening… tap to stop"
-      : state === "processing"
-        ? "Transcribing…"
-        : "Hold a thought — tap to dictate";
+    state === "recording" && interim
+      ? interim
+      : state === "recording"
+        ? "Listening… tap to stop"
+        : state === "processing"
+          ? "Transcribing…"
+          : "Hold a thought — tap to dictate";
 
   return (
     <View style={[styles.wrap, compact && styles.wrapCompact]}>

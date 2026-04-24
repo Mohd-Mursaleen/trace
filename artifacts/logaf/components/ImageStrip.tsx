@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Alert, Modal, Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 import { useJournalStore } from "@/hooks/useJournalStore";
@@ -14,6 +15,7 @@ type Props = {
 export function ImageStrip({ images, onChange }: Props) {
   const colors = useColors();
   const { copyImageToLocal } = useJournalStore();
+  const [previewUri, setPreviewUri] = useState<string | null>(null);
 
   const pickFromLibrary = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -98,6 +100,33 @@ export function ImageStrip({ images, onChange }: Props) {
         </Pressable>
       </View>
 
+      {/* Full-screen image preview */}
+      <Modal
+        visible={previewUri !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewUri(null)}
+        statusBarTranslucent
+      >
+        <StatusBar hidden />
+        <Pressable style={styles.previewBackdrop} onPress={() => setPreviewUri(null)}>
+          {previewUri ? (
+            <Image
+              source={{ uri: previewUri }}
+              style={styles.previewImage}
+              contentFit="contain"
+            />
+          ) : null}
+          <Pressable
+            onPress={() => setPreviewUri(null)}
+            hitSlop={12}
+            style={styles.previewClose}
+          >
+            <Feather name="x" size={22} color="#fff" />
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {images.length > 0 ? (
         <ScrollView
           horizontal
@@ -107,6 +136,7 @@ export function ImageStrip({ images, onChange }: Props) {
           {images.map((uri) => (
             <Pressable
               key={uri}
+              onPress={() => setPreviewUri(uri)}
               onLongPress={() => remove(uri)}
               style={({ pressed }) => [
                 styles.thumbWrap,
@@ -177,6 +207,27 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.92)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewImage: {
+    width: "100%",
+    height: "100%",
+  },
+  previewClose: {
+    position: "absolute",
+    top: 52,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.5)",
     alignItems: "center",
     justifyContent: "center",
   },

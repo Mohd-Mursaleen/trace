@@ -32,7 +32,10 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",
         "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM"
       ]
     },
     "web": {
@@ -43,7 +46,13 @@
       "expo-font",
       "expo-web-browser",
       "expo-audio",
-      "expo-image-picker"
+      "expo-image-picker",
+      [
+        "expo-notifications",
+        {
+          "color": "#c4f441"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

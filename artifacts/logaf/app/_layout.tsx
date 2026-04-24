@@ -18,14 +18,26 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useColors } from "@/hooks/useColors";
-import { JournalProvider } from "@/hooks/useJournalStore";
+import { JournalProvider, useJournalStore } from "@/hooks/useJournalStore";
+import {
+  configureNotificationHandler,
+  scheduleJournalReminder,
+} from "@/lib/notifications";
 
 SplashScreen.preventAutoHideAsync();
+configureNotificationHandler();
 
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const colors = useColors();
+  const { ready, profile } = useJournalStore();
+
+  // Reschedule the reminder on app launch so it survives device restarts.
+  useEffect(() => {
+    if (!ready || !profile.reminderEnabled) return;
+    void scheduleJournalReminder(profile.reminderHour, profile.reminderMinute, profile.name);
+  }, [ready]);
 
   return (
     <Tabs

@@ -46,15 +46,17 @@ export function QuoteBanner() {
       {/* Decorative quote mark */}
       <Text style={[styles.quoteMark, { color: colors.accent }]}>"</Text>
 
-      {/* Quote text */}
-      <Animated.Text
-        style={[
-          styles.quote,
-          { color: colors.text, opacity },
-        ]}
-      >
-        {QUOTES[index]}
-      </Animated.Text>
+      {/* Quote text — fixed height so container never resizes between quotes */}
+      <View style={styles.quoteWrap}>
+        <Animated.Text
+          style={[
+            styles.quote,
+            { color: colors.text, opacity },
+          ]}
+        >
+          {QUOTES[index]}
+        </Animated.Text>
+      </View>
 
       {/* Counter */}
       <Animated.Text
@@ -92,6 +94,11 @@ const styles = StyleSheet.create({
     lineHeight: 32,
     letterSpacing: -1,
     marginBottom: -4,
+  },
+  quoteWrap: {
+    // 3 lines × lineHeight 24 — tall enough for the longest quote in the list.
+    height: 72,
+    justifyContent: "center",
   },
   quote: {
     fontFamily: "Inter_400Regular",
