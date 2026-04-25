@@ -10,6 +10,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@expo-google-fonts/inter": "^0.4.0",
+    "@expo-google-fonts/space-grotesk": "^0.4.0",
     "@expo/cli": "54.0.23",
     "@expo/ngrok": "^4.1.0",
     "@expo/vector-icons": "^15.0.3",
@@ -55,6 +56,7 @@
   },
   "dependencies": {
     "expo-audio": "^1.1.1",
+    "expo-keep-awake": "~15.0.8",
     "expo-document-picker": "^14.0.8",
     "expo-file-system": "^19.0.21",
     "expo-notifications": "~0.32.16",

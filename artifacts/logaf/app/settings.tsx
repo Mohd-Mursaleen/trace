@@ -666,7 +666,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 16,
     letterSpacing: -0.2,
   },
@@ -702,15 +702,15 @@ const styles = StyleSheet.create({
   },
   initials: {
     fontSize: 28,
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceGrotesk_700Bold",
   },
   profileName: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 20,
     letterSpacing: -0.3,
   },
   profileSubtitle: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
     marginTop: 4,
   },
@@ -728,27 +728,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statValue: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 22,
   },
   statLabel: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 11,
     marginTop: 2,
   },
   metaLabel: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 10,
     letterSpacing: 1.4,
     textTransform: "uppercase",
   },
   metaBody: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
     lineHeight: 20,
   },
   emptyProfileText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
     marginTop: 16,
     textAlign: "center",
@@ -759,15 +759,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   rowLink: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 14,
   },
   rowSecondaryLink: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
   },
   inputLabel: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 10,
     textTransform: "uppercase",
     letterSpacing: 1.2,
@@ -777,7 +777,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 15,
   },
   toggleRow: {
@@ -787,11 +787,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   toggleLabel: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 14,
   },
   connectedBadge: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
     letterSpacing: 0.2,
   },
@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   updateBtnText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
   },
   timePicker: {
@@ -841,14 +841,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   timeValue: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 22,
     letterSpacing: -0.5,
     minWidth: 34,
     textAlign: "center",
   },
   timeColon: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 22,
     marginBottom: 2,
   },
@@ -860,7 +860,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   ampmText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 13,
     letterSpacing: 0.5,
   },
@@ -869,13 +869,13 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   dataInfo: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
     lineHeight: 18,
     marginTop: 2,
   },
   helperText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
     lineHeight: 18,
   },
@@ -885,12 +885,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   privacyText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13.5,
     flex: 1,
   },
   versionText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
   },
 });

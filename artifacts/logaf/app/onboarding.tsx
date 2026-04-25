@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   skipText: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 13,
     letterSpacing: 0.2,
   },
@@ -484,7 +484,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   smFeatureText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 11,
     textAlign: "center",
     letterSpacing: 0.1,
@@ -500,13 +500,13 @@ const styles = StyleSheet.create({
   },
   avatarImg: { width: 116, height: 116, borderRadius: 58 },
   title: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 26,
     letterSpacing: -0.6,
     textAlign: "center",
   },
   body1: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 15,
     lineHeight: 22,
     textAlign: "center",
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 12,
     borderWidth: 1,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 15,
     marginTop: 0,
   },
@@ -528,12 +528,12 @@ const styles = StyleSheet.create({
     // no extra top margin — gap comes from footer's gap
   },
   linkText: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 13,
     letterSpacing: 0.2,
   },
   helper: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
     marginTop: 8,
   },
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   ctaText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 15.5,
     letterSpacing: 0.1,
   },
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   stepsTitle: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 13,
     letterSpacing: 0.2,
     marginBottom: 2,
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   smStepNum: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 11,
   },
   smStepBody: {
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   stepText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
     lineHeight: 19,
   },
@@ -609,7 +609,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   openBtnText: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 12,
   },
 });

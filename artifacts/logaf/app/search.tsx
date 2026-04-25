@@ -62,36 +62,6 @@ const SEARCH_CHIP_SUGGESTIONS = [
   "What should I revisit from my journal?",
 ];
 
-const FILTER_OPTIONS = [
-  { label: "This week", key: "week" },
-  { label: "This month", key: "month" },
-  { label: "Last 3 months", key: "3months" },
-  { label: "This year", key: "year" },
-  { label: "All time", key: "all" },
-];
-
-function getDateFilter(filterKey: string) {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-
-  if (filterKey === "week") {
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return `${weekAgo.getFullYear()}-${pad(weekAgo.getMonth() + 1)}-${pad(weekAgo.getDate())}`;
-  }
-  if (filterKey === "month") {
-    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
-  }
-  if (filterKey === "3months") {
-    const d = new Date(now);
-    d.setMonth(d.getMonth() - 3);
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
-  }
-  if (filterKey === "year") {
-    return `${now.getFullYear()}-01-01`;
-  }
-  return null;
-}
-
 function formatDisplayDate(value?: string): string {
   if (!value) return "";
   const d = new Date(value.length === 10 ? `${value}T00:00:00` : value);
@@ -103,57 +73,48 @@ function formatDisplayDate(value?: string): string {
   });
 }
 
-function getResultDate(result: SearchResult): Date | null {
-  const raw = result.metadata?.date ?? result.updatedAt;
-  if (!raw) return null;
-  const parsed = new Date(raw.length === 10 ? `${raw}T00:00:00` : raw);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed;
-}
-
-function applyDateFilter(results: SearchResult[], filterKey: string): SearchResult[] {
-  const dateFrom = getDateFilter(filterKey);
-  if (!dateFrom) return results;
-  const cutoff = new Date(`${dateFrom}T00:00:00`);
-  return results.filter((result) => {
-    const d = getResultDate(result);
-    return d ? d >= cutoff : true;
-  });
-}
-
+/**
+ * Skeleton card that mirrors the shape of a real SearchResultCard.
+ * Left strip + date line + content lines pulse together.
+ */
 function SkeletonCard() {
   const colors = useColors();
-  const opacity = useRef(new Animated.Value(0.5)).current;
-  const shimmer = "rgba(180, 200, 220, 0.15)";
+  const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 0.5, duration: 700, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 900, useNativeDriver: true }),
       ]),
     );
     pulse.start();
     return () => pulse.stop();
-  }, [opacity]);
+  }, [anim]);
+
+  const shimmer = colors.borderStrong;
 
   return (
     <Animated.View
       style={{
-        opacity,
+        opacity: anim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] }),
         backgroundColor: colors.card,
         borderRadius: 14,
         borderWidth: 1,
         borderColor: colors.border,
-        padding: 16,
-        gap: 10,
+        overflow: "hidden",
+        flexDirection: "row",
       }}
     >
-      <View style={{ width: 110, height: 10, borderRadius: 5, backgroundColor: shimmer }} />
-      <View style={{ width: "100%", height: 13, borderRadius: 6, backgroundColor: shimmer }} />
-      <View style={{ width: "80%", height: 13, borderRadius: 6, backgroundColor: shimmer }} />
-      <View style={{ width: "55%", height: 13, borderRadius: 6, backgroundColor: shimmer }} />
-      <View style={{ width: "100%", height: 2, borderRadius: 1, backgroundColor: shimmer }} />
+      {/* Left strip placeholder */}
+      <View style={{ width: 3, backgroundColor: shimmer }} />
+      {/* Content area */}
+      <View style={{ flex: 1, padding: 14, paddingLeft: 13, gap: 10 }}>
+        <View style={{ width: 76, height: 9, borderRadius: 5, backgroundColor: shimmer }} />
+        <View style={{ width: "92%", height: 12, borderRadius: 6, backgroundColor: shimmer }} />
+        <View style={{ width: "76%", height: 12, borderRadius: 6, backgroundColor: shimmer }} />
+        <View style={{ width: "50%", height: 12, borderRadius: 6, backgroundColor: shimmer }} />
+      </View>
     </Animated.View>
   );
 }
@@ -167,27 +128,25 @@ function SearchResultCard({ result, onPress }: { result: SearchResult; onPress: 
         backgroundColor: pressed ? colors.cardAlt : colors.card,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: colors.border,
-        padding: 16,
-        gap: 8,
+        borderColor: pressed ? colors.accentRing : colors.border,
+        overflow: "hidden",
+        flexDirection: "row",
       })}
     >
-      <Text style={[styles.resultDate, { color: colors.accent }]}>
-        {formatDisplayDate(result.metadata?.date ?? result.updatedAt)}
-      </Text>
-      <Text numberOfLines={3} style={[styles.resultBody, { color: colors.text }]}>
-        {result.memory ?? ""}
-      </Text>
-      <View style={[styles.scoreTrack, { backgroundColor: colors.border }]}>
-        <View
-          style={[
-            styles.scoreFill,
-            {
-              width: `${Math.round((result.similarity ?? 0) * 100)}%`,
-              backgroundColor: colors.accent,
-            },
-          ]}
-        />
+      {/* Left accent strip */}
+      <View style={{ width: 3, backgroundColor: colors.accent, opacity: 0.8 }} />
+      {/* Content */}
+      <View style={{ flex: 1, padding: 14, paddingLeft: 13, gap: 6 }}>
+        <Text style={[styles.resultDate, { color: colors.accent }]}>
+          {formatDisplayDate(result.metadata?.date ?? result.updatedAt)}
+        </Text>
+        <Text numberOfLines={3} style={[styles.resultBody, { color: colors.text }]}>
+          {result.memory ?? ""}
+        </Text>
+      </View>
+      {/* Chevron */}
+      <View style={{ justifyContent: "center", paddingRight: 14 }}>
+        <Feather name="chevron-right" size={14} color={colors.textDim} />
       </View>
     </Pressable>
   );
@@ -201,7 +160,6 @@ export default function SearchScreen() {
   const [query, setQuery] = useState("");
   const [allResults, setAllResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<string>("all");
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -217,12 +175,6 @@ export default function SearchScreen() {
     220,
   );
   const inputRef = useRef<TextInput | null>(null);
-
-  // Derive filtered results from allResults — no separate state needed.
-  const results = useMemo(
-    () => applyDateFilter(allResults, activeFilter),
-    [allResults, activeFilter],
-  );
 
   const currentSuggestion = SEARCH_SUGGESTIONS[suggestionIndex] ?? SEARCH_SUGGESTIONS[0]!;
   const searchBarHighlighted = inputFocused || query.trim().length > 0;
@@ -280,13 +232,6 @@ export default function SearchScreen() {
       setLoading(true);
       setHasSearched(true);
       setError(null);
-      if (__DEV__) {
-        console.log("[search] start", {
-          query: value,
-          filter: activeFilter,
-          containerTag: profile.supermemoryContainerTag?.trim() || null,
-        });
-      }
 
       const res = await searchMemories(
         profile.supermemoryKey,
@@ -294,20 +239,18 @@ export default function SearchScreen() {
         profile.supermemoryContainerTag || null,
       );
       if (res.success && res.data) {
-        if (__DEV__) console.log("[search] success", { results: res.data.results?.length ?? 0 });
         setAllResults(res.data.results ?? []);
       } else {
-        if (__DEV__) console.log("[search] failed", res.error);
         setAllResults([]);
         setError(res.error ?? "Search failed.");
       }
       setLoading(false);
     },
-    [activeFilter, profile.supermemoryContainerTag, profile.supermemoryKey],
+    [profile.supermemoryContainerTag, profile.supermemoryKey],
   );
 
   const showPrompt = !loading && !hasSearched && query.trim().length === 0;
-  const showNoResults = !loading && hasSearched && results.length === 0 && !error;
+  const showNoResults = !loading && hasSearched && allResults.length === 0 && !error;
 
   // All hooks called above — safe to early-return here.
   if (!profile.supermemoryEnabled) {
@@ -399,32 +342,7 @@ export default function SearchScreen() {
         )}
       </View>
 
-      {!loading && allResults.length > 0 ? (
-        <View style={styles.filtersWrap}>
-          {FILTER_OPTIONS.map((item) => {
-            const active = activeFilter === item.key;
-            return (
-              <Pressable
-                key={item.key}
-                onPress={() => setActiveFilter(item.key)}
-                style={[
-                  styles.filterPill,
-                  {
-                    backgroundColor: active ? colors.accent : colors.cardAlt,
-                    borderColor: active ? colors.accentRing : colors.border,
-                  },
-                ]}
-              >
-                <Text
-                  style={[styles.filterLabel, { color: active ? "#0a0a0a" : colors.textMuted }]}
-                >
-                  {item.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : !loading && query.trim().length === 0 ? (
+      {!loading && query.trim().length === 0 ? (
         <View style={styles.suggestionsWrap}>
           {suggestionPills.map((item, idx) => (
             <Pressable
@@ -461,7 +379,7 @@ export default function SearchScreen() {
         showsVerticalScrollIndicator={false}
       >
         {loading ? (
-          <View style={{ gap: 10, paddingHorizontal: 16, paddingTop: 12 }}>
+          <View style={{ gap: 10, paddingTop: 12 }}>
             <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
@@ -490,9 +408,9 @@ export default function SearchScreen() {
           </View>
         ) : null}
 
-        {!loading && results.length > 0 ? (
-          <View style={{ gap: 12, marginTop: 14 }}>
-            {results.map((result, idx) => (
+        {!loading && allResults.length > 0 ? (
+          <View style={{ gap: 10, marginTop: 14 }}>
+            {allResults.map((result, idx) => (
               <SearchResultCard
                 key={`${result.id}-${idx}`}
                 result={result}
@@ -521,7 +439,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   title: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 22,
     letterSpacing: -0.4,
   },
@@ -549,35 +467,14 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 15,
   },
   input: {
     flex: 1,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 15,
     padding: 0,
-  },
-  filtersWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 6,
-  },
-  filterPill: {
-    borderRadius: 999,
-    borderWidth: 1,
-    minHeight: 32,
-    justifyContent: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-  filterLabel: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 12,
-    letterSpacing: 0.2,
   },
   suggestionsWrap: {
     flexDirection: "row",
@@ -620,7 +517,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   suggestionLabel: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 12,
     lineHeight: 16,
     letterSpacing: 0.15,
@@ -632,42 +529,32 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   doneText: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 12,
     letterSpacing: 0.2,
   },
   promptText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
     textAlign: "center",
     marginTop: 40,
   },
   emptyText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 14,
     marginTop: 12,
     textAlign: "center",
   },
   resultDate: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 11,
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
     textTransform: "uppercase",
   },
   resultBody: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 14,
-    lineHeight: 22,
-  },
-  scoreTrack: {
-    height: 2,
-    borderRadius: 1,
-    overflow: "hidden",
-  },
-  scoreFill: {
-    height: 2,
-    borderRadius: 1,
-    opacity: 0.6,
+    lineHeight: 21,
   },
   errorWrap: {
     flexDirection: "row",
@@ -676,7 +563,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   errorText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
     flex: 1,
   },

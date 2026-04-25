@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 15,
     letterSpacing: -0.2,
   },
@@ -320,12 +320,12 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   infoTitle: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 13,
     letterSpacing: 0.2,
   },
   infoText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
     lineHeight: 20,
   },
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   stepNumber: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 13,
   },
   stepBody: {
@@ -356,11 +356,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   stepTitle: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 14,
   },
   stepDesc: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13,
     lineHeight: 19,
   },
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   openBtnText: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 13,
   },
   keyInputWrap: {
@@ -388,11 +388,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 14,
   },
   errorText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
   },
   verifyBtn: {
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   verifyBtnText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 15,
     color: "#0a0a0a",
   },

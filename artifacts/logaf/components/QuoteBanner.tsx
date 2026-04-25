@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   quoteMark: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 36,
     lineHeight: 32,
     letterSpacing: -1,
@@ -101,13 +101,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   quote: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 15,
     lineHeight: 24,
     letterSpacing: 0.1,
   },
   counter: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 10,
     letterSpacing: 1.2,
     textAlign: "right",

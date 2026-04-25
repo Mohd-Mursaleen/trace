@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 10,
     letterSpacing: 0.3,
   },

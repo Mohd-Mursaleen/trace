@@ -39,7 +39,7 @@ export function CalendarDayCell({
   let textColor = colors.textMuted;
   let borderColor = "transparent";
   let borderWidth = 0;
-  let fontFamily = "Inter_400Regular";
+  let fontFamily = "SpaceGrotesk_400Regular";
   let opacity = 1;
 
   if (future) {
@@ -48,7 +48,7 @@ export function CalendarDayCell({
   } else if (hasPhoto) {
     // Image fills cell; number shown bottom-right
     textColor = today ? colors.accent : "rgba(255,255,255,0.9)";
-    fontFamily = today ? "Inter_700Bold" : "Inter_500Medium";
+    fontFamily = today ? "SpaceGrotesk_700Bold" : "SpaceGrotesk_500Medium";
     if (today) {
       borderColor = colors.accent;
       borderWidth = 1.5;
@@ -56,7 +56,7 @@ export function CalendarDayCell({
   } else if (hasText) {
     bg = colors.accentDim;
     textColor = today ? colors.accent : colors.foreground;
-    fontFamily = today ? "Inter_700Bold" : "Inter_500Medium";
+    fontFamily = today ? "SpaceGrotesk_700Bold" : "SpaceGrotesk_500Medium";
     if (today) {
       borderColor = colors.accent;
       borderWidth = 1.5;
@@ -65,10 +65,10 @@ export function CalendarDayCell({
     borderColor = colors.accent;
     borderWidth = 1.5;
     textColor = colors.accent;
-    fontFamily = "Inter_700Bold";
+    fontFamily = "SpaceGrotesk_700Bold";
   } else {
     textColor = colors.textMuted;
-    fontFamily = "Inter_400Regular";
+    fontFamily = "SpaceGrotesk_400Regular";
   }
 
   const cell = (

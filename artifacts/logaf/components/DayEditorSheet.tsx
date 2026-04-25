@@ -331,7 +331,7 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
                     styles.tabText,
                     {
                       color: tab === t ? colors.accent : colors.textMuted,
-                      fontFamily: tab === t ? "Inter_600SemiBold" : "Inter_400Regular",
+                      fontFamily: tab === t ? "SpaceGrotesk_600SemiBold" : "SpaceGrotesk_400Regular",
                     },
                   ]}
                 >
@@ -420,12 +420,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   dateText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 15,
     letterSpacing: -0.2,
   },
   subText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 11,
     letterSpacing: 0.6,
   },
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   saveBtnText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 13,
     color: "#0a0a0a",
     letterSpacing: 0.1,

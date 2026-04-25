@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 26,
     letterSpacing: 0.1,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     paddingVertical: 4,
   },
   micArea: {

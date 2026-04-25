@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   weekday: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 11,
     letterSpacing: 0.8,
     textAlign: "center",

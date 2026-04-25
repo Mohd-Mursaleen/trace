@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   actionText: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 13,
     letterSpacing: 0.1,
   },

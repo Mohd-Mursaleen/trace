@@ -72,7 +72,7 @@ export function DataButton({
 
 const styles = StyleSheet.create({
   sectionTitle: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 11,
     letterSpacing: 1.4,
     textTransform: "uppercase",
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   dataBtnText: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 14,
   },
 });

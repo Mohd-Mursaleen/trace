@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 13,
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     letterSpacing: 0.1,
   },
 });

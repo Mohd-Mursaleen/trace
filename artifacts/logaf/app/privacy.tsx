@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 16,
     letterSpacing: -0.2,
   },
@@ -224,13 +224,13 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   heroTitle: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 22,
     letterSpacing: -0.5,
     textAlign: "center",
   },
   heroSub: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 14,
     lineHeight: 22,
     textAlign: "center",
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   sectionTitle: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 14,
     letterSpacing: -0.1,
   },
@@ -279,17 +279,17 @@ const styles = StyleSheet.create({
   },
   bulletText: {
     flex: 1,
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 13.5,
     lineHeight: 21,
   },
   externalLink: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 13,
     paddingLeft: 14,
   },
   footer: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
     textAlign: "center",
     paddingVertical: 8,

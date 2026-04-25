@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
   },
   statusText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
     letterSpacing: 0.4,
   },

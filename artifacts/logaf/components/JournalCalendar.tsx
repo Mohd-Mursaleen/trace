@@ -61,7 +61,7 @@ export function JournalCalendar({ onDayPress }: Props) {
               <Text
                 style={{
                   fontSize: 13,
-                  fontFamily: view === mode ? "Inter_600SemiBold" : "Inter_400Regular",
+                  fontFamily: view === mode ? "SpaceGrotesk_600SemiBold" : "SpaceGrotesk_400Regular",
                   color: view === mode ? "#0a0a0a" : colors.textMuted,
                   letterSpacing: 0.2,
                 }}
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   monthTitle: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 17,
     letterSpacing: -0.3,
   },
@@ -179,12 +179,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   yearTitle: {
-    fontFamily: "Inter_700Bold",
+    fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 28,
     letterSpacing: -1,
   },
   yearCount: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 10,
     marginTop: 2,
     textAlign: "center",

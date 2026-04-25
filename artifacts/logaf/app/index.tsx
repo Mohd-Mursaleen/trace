@@ -136,12 +136,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   navBrand: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 13,
     letterSpacing: -0.1,
   },
   navMemories: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 11,
     letterSpacing: 0.1,
     textAlign: "center",
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   navName: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 12,
     letterSpacing: -0.1,
     maxWidth: 80,

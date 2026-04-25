@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   closeText: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 13,
     letterSpacing: 0.2,
   },
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
   },
   dateLabel: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 11,
     letterSpacing: 1.2,
     textTransform: "uppercase",
@@ -175,13 +175,13 @@ const styles = StyleSheet.create({
     marginVertical: 16,
   },
   bodyText: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 16,
     lineHeight: 28,
     letterSpacing: 0.1,
   },
   photosLabel: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 10,
     letterSpacing: 1.4,
     marginBottom: 8,

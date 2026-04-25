@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   sectionLabel: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "SpaceGrotesk_500Medium",
     fontSize: 11,
     letterSpacing: 1.2,
     textTransform: "uppercase",

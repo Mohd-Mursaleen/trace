@@ -70,13 +70,13 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(196,244,65,0.1)",
   },
   title: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 20,
     textAlign: "center",
     letterSpacing: -0.3,
   },
   body: {
-    fontFamily: "Inter_400Regular",
+    fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 14,
     textAlign: "center",
     marginTop: 8,
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   btnText: {
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     fontSize: 14,
     color: "#0a0a0a",
   },

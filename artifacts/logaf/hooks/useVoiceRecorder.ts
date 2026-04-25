@@ -1,4 +1,5 @@
 import { AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder } from "expo-audio";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import { useCallback, useState } from "react";
 import { Alert, Platform } from "react-native";
 
@@ -37,11 +38,13 @@ export function useVoiceRecorder(onTranscript: (text: string) => void) {
       }
       // iOS requires allowsRecording: true before the recorder can start.
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await activateKeepAwakeAsync();
       await recorder.prepareToRecordAsync();
       recorder.record();
       setState("recording");
     } catch (e) {
       if (__DEV__) console.warn("[voice] start failed:", e);
+      deactivateKeepAwake();
       setState("error");
       setTimeout(() => setState("idle"), 1500);
     }
@@ -49,6 +52,7 @@ export function useVoiceRecorder(onTranscript: (text: string) => void) {
 
   const stop = useCallback(async () => {
     setState("processing");
+    deactivateKeepAwake();
     try {
       await recorder.stop();
       const uri = recorder.uri;
@@ -63,6 +67,7 @@ export function useVoiceRecorder(onTranscript: (text: string) => void) {
   }, [recorder, onTranscript]);
 
   const cancel = useCallback(async () => {
+    deactivateKeepAwake();
     try { await recorder.stop(); } catch {}
     setState("idle");
   }, [recorder]);
