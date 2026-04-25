@@ -1,9 +1,9 @@
 const palette = {
   bg: "#0a0a0a",
-  surface: "#111111",
-  surfaceAlt: "#1a1a1a",
-  surfaceHigh: "#141414",
-  border: "#1e1e1e",
+  surface: "#181818",
+  surfaceAlt: "#222222",
+  surfaceHigh: "#1d1d1d",
+  border: "#282828",
   borderStrong: "#2e2e2e",
   text: "#fafafa",
   textMuted: "#888888",
