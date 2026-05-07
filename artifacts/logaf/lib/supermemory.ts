@@ -1,6 +1,17 @@
 const TIMEOUT_MS = 10_000;
 const SEARCH_TIMEOUT_MS = 20_000;
 const BASE = "https://api.supermemory.ai";
+const SUGGESTIONS_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+type SuggestionsCache = {
+  key: string;
+  containerTag: string | null;
+  suggestions: string[];
+  fetchedAt: number;
+};
+
+// Module-level cache — survives tab navigation, cleared after TTL
+let suggestionsCache: SuggestionsCache | null = null;
 
 export type SearchResult = {
   id: string;
@@ -147,7 +158,6 @@ export async function searchMemories(
     threshold: 0.3,
     rerank: true,
     rewriteQuery: true,
-    aggregate: true,
   };
 
   if (containerTag?.trim()) {
@@ -181,11 +191,18 @@ export async function searchMemories(
       return { success: false, error: `${res.status}: ${errText}` };
     }
 
-    const data = (await res.json()) as SearchResponse;
+    const raw = (await res.json()) as Record<string, unknown>;
+    // v4 API may return `content`/`score` instead of `memory`/`similarity` — normalize both
+    const results: SearchResult[] = ((raw.results as Record<string, unknown>[] | undefined) ?? []).map((r) => ({
+      id: String(r["id"] ?? ""),
+      memory: String(r["memory"] ?? r["content"] ?? ""),
+      similarity: Number(r["similarity"] ?? r["score"] ?? 0),
+      updatedAt: String(r["updatedAt"] ?? ""),
+      metadata: (r["metadata"] as SearchResult["metadata"]) ?? undefined,
+    }));
+    const data: SearchResponse = { results };
     if (__DEV__) {
-      console.log("[supermemory.search] success", {
-        count: data?.results?.length ?? 0,
-      });
+      console.log("[supermemory.search] success", { count: results.length });
     }
     return { success: true, data };
   } catch (e: unknown) {
@@ -233,18 +250,32 @@ export async function fetchSearchSuggestions(
 ): Promise<{ success: boolean; suggestions?: string[]; error?: string }> {
   if (!key?.trim()) return { success: false, error: "no key" };
 
+  const normalizedKey = key.trim();
+  const normalizedTag = containerTag?.trim() ?? null;
+
+  // Return cached suggestions if still fresh
+  if (
+    suggestionsCache &&
+    suggestionsCache.key === normalizedKey &&
+    suggestionsCache.containerTag === normalizedTag &&
+    Date.now() - suggestionsCache.fetchedAt < SUGGESTIONS_TTL_MS
+  ) {
+    if (__DEV__) console.log("[supermemory.suggestions] cache hit");
+    return { success: true, suggestions: suggestionsCache.suggestions };
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
 
   const body: Record<string, unknown> = {};
-  if (containerTag?.trim()) body["containerTag"] = containerTag.trim();
+  if (normalizedTag) body["containerTag"] = normalizedTag;
 
   try {
     const res = await fetch(`${BASE}/v4/profile`, {
       method: "POST",
       signal: controller.signal,
       headers: {
-        Authorization: `Bearer ${key.trim()}`,
+        Authorization: `Bearer ${normalizedKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -259,6 +290,9 @@ export async function fetchSearchSuggestions(
       .slice(0, 6)
       .map((s) => s.split(" ").slice(0, 5).join(" ").trim())
       .filter(Boolean);
+
+    suggestionsCache = { key: normalizedKey, containerTag: normalizedTag, suggestions, fetchedAt: Date.now() };
+    if (__DEV__) console.log("[supermemory.suggestions] fetched and cached", suggestions.length);
 
     return { success: true, suggestions };
   } catch (e: unknown) {
