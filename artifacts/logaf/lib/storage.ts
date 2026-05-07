@@ -12,6 +12,8 @@ export type Profile = {
   reminderHour: number;
   /** 0–59 */
   reminderMinute: number;
+  /** Whether the user has opted into on-device AI (Gemma 4 E2B via LiteRT-LM) */
+  aiEnabled: boolean;
 };
 
 export type JournalEntry = {
@@ -43,6 +45,7 @@ export const DEFAULT_PROFILE: Profile = {
   reminderEnabled: true,
   reminderHour: 21,
   reminderMinute: 0,
+  aiEnabled: false,
 };
 
 export async function loadProfile(): Promise<Profile> {

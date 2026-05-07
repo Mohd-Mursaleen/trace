@@ -1,5 +1,13 @@
+/**
+ * QuoteBanner — home screen insight card.
+ * When on-device AI is ready: shows a generated weekly summary (changes each week).
+ * When AI is disabled / generating: falls back to the static rotating quote list.
+ */
+
+import { useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 
+import { useAI } from "@/hooks/useAI";
 import { useColors } from "@/hooks/useColors";
 import { useRotatingIndex } from "@/hooks/useRotatingIndex";
 
@@ -24,11 +32,43 @@ const QUOTES = [
 const HOLD_MS = 6000;
 const FADE_MS = 600;
 
+/** Fade-in animation for the AI summary (runs once on mount). */
+function useOnceOpacity(active: boolean): Animated.Value {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!active) return;
+    Animated.timing(anim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+  }, [active, anim]);
+  return anim;
+}
+
 export function QuoteBanner() {
   const colors = useColors();
-  const [index, opacity] = useRotatingIndex(QUOTES.length, HOLD_MS + FADE_MS * 2, FADE_MS);
+  const { status, generateWeeklySummary } = useAI();
 
-  const displayIndex = String(index + 1).padStart(2, "0");
+  // AI summary state
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiAttempted, setAiAttempted] = useState(false);
+
+  // Fallback rotating quotes (always computed, conditionally rendered)
+  const [quoteIndex, quoteOpacity] = useRotatingIndex(
+    QUOTES.length,
+    HOLD_MS + FADE_MS * 2,
+    FADE_MS,
+  );
+
+  const summaryOpacity = useOnceOpacity(!!aiSummary);
+
+  // Attempt summary generation when engine becomes ready
+  useEffect(() => {
+    if (status !== "ready" || aiAttempted) return;
+    setAiAttempted(true);
+    generateWeeklySummary().then((s) => setAiSummary(s));
+  }, [status, aiAttempted, generateWeeklySummary]);
+
+  const showAI = !!aiSummary;
+
+  const displayIndex = String(quoteIndex + 1).padStart(2, "0");
   const total = String(QUOTES.length).padStart(2, "0");
 
   return (
@@ -38,35 +78,44 @@ export function QuoteBanner() {
         {
           backgroundColor: colors.card,
           borderColor: colors.accentRing,
-          // Accent glow — works on iOS; elevation on Android
           shadowColor: colors.accent,
         },
       ]}
     >
-      {/* Decorative quote mark */}
-      <Text style={[styles.quoteMark, { color: colors.accent }]}>"</Text>
+      {/* Decorative mark — " for quotes, ✦ for AI summary */}
+      <Text style={[styles.quoteMark, { color: colors.accent }]}>
+        {showAI ? "✦" : '"'}
+      </Text>
 
-      {/* Quote text — fixed height so container never resizes between quotes */}
+      {/* Content area — fixed height so the card never resizes */}
       <View style={styles.quoteWrap}>
-        <Animated.Text
-          style={[
-            styles.quote,
-            { color: colors.text, opacity },
-          ]}
-        >
-          {QUOTES[index]}
-        </Animated.Text>
+        {showAI ? (
+          <Animated.Text
+            style={[styles.quote, { color: colors.text, opacity: summaryOpacity }]}
+          >
+            {aiSummary}
+          </Animated.Text>
+        ) : (
+          <Animated.Text
+            style={[styles.quote, { color: colors.text, opacity: quoteOpacity }]}
+          >
+            {QUOTES[quoteIndex]}
+          </Animated.Text>
+        )}
       </View>
 
-      {/* Counter */}
-      <Animated.Text
-        style={[
-          styles.counter,
-          { color: colors.textDim, opacity },
-        ]}
-      >
-        {displayIndex} / {total}
-      </Animated.Text>
+      {/* Footer label */}
+      {showAI ? (
+        <Text style={[styles.counter, { color: colors.accent }]}>
+          this week
+        </Text>
+      ) : (
+        <Animated.Text
+          style={[styles.counter, { color: colors.textDim, opacity: quoteOpacity }]}
+        >
+          {displayIndex} / {total}
+        </Animated.Text>
+      )}
     </View>
   );
 }
@@ -82,7 +131,6 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 18,
     gap: 12,
-    // Glow
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.18,
     shadowRadius: 24,
@@ -96,7 +144,7 @@ const styles = StyleSheet.create({
     marginBottom: -4,
   },
   quoteWrap: {
-    // 3 lines × lineHeight 24 — tall enough for the longest quote in the list.
+    // 3 lines × lineHeight 24 — tall enough for the longest quote/summary
     height: 72,
     justifyContent: "center",
   },

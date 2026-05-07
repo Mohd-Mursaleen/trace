@@ -47,6 +47,7 @@
       "expo-web-browser",
       "expo-audio",
       "expo-image-picker",
+      "react-native-litert-lm",
       [
         "expo-notifications",
         {

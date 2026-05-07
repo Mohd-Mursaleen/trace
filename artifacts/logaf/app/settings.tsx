@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DataButton, Row, SectionCard, SectionTitle } from "@/components/SettingsComponents";
 import { DotGrid } from "@/components/DotGrid";
 import { SupermemorySetupModal } from "@/components/SupermemorySetupModal";
+import { useAI } from "@/hooks/useAI";
 import { useColors } from "@/hooks/useColors";
 import { useJournalStore } from "@/hooks/useJournalStore";
 import { exportData, importData, type ConflictResolution } from "@/lib/exportImport";
@@ -50,6 +51,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { profile, index, updateProfile, copyImageToLocal, refresh } = useJournalStore();
+  const { status: aiStatus, downloadProgress, enableAI, startDownload, cancelDownload, disableAI } = useAI();
 
   const [name, setName] = useState(profile.name);
   const [smModalVisible, setSmModalVisible] = useState(false);
@@ -132,6 +134,14 @@ export default function SettingsScreen() {
     setSmModalVisible(false);
     if (key) {
       await updateProfile({ supermemoryEnabled: true, supermemoryKey: key });
+    }
+  };
+
+  const handleAIToggle = () => {
+    if (profile.aiEnabled) {
+      void disableAI();
+    } else {
+      enableAI();
     }
   };
 
@@ -485,6 +495,121 @@ export default function SettingsScreen() {
                 </Row>
               </>
             ) : null}
+          </SectionCard>
+
+          <SectionTitle text="On-Device AI" />
+          <SectionCard>
+            <Row>
+              <View style={styles.toggleRow}>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[styles.toggleLabel, { color: colors.text }]}>
+                    On-Device AI
+                  </Text>
+                  {aiStatus === "ready" && (
+                    <Text style={[styles.connectedBadge, { color: colors.accent }]}>
+                      ✓ Ready
+                    </Text>
+                  )}
+                  {aiStatus === "loading" && (
+                    <Text style={[styles.connectedBadge, { color: colors.textMuted }]}>
+                      Loading model...
+                    </Text>
+                  )}
+                  {aiStatus === "not_downloaded" && (
+                    <Text style={[styles.connectedBadge, { color: colors.textMuted }]}>
+                      Model not downloaded
+                    </Text>
+                  )}
+                </View>
+                <Pressable
+                  onPress={handleAIToggle}
+                  style={({ pressed }) => [
+                    styles.toggle,
+                    {
+                      backgroundColor: profile.aiEnabled ? colors.accent : colors.cardHigh,
+                      borderColor: profile.aiEnabled ? colors.accent : colors.borderStrong,
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.toggleKnob,
+                      {
+                        backgroundColor: profile.aiEnabled ? "#0a0a0a" : colors.text,
+                        transform: [{ translateX: profile.aiEnabled ? 18 : 0 }],
+                      },
+                    ]}
+                  />
+                </Pressable>
+              </View>
+            </Row>
+
+            {aiStatus === "downloading" && (
+              <Row>
+                <View style={{ gap: 8 }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                    <Text style={[styles.helperText, { color: colors.textMuted }]}>
+                      Downloading Gemma 4 E2B...
+                    </Text>
+                    <Text style={[styles.helperText, { color: colors.textDim }]}>
+                      {Math.round(downloadProgress * 100)}%
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.progressTrack,
+                      { backgroundColor: colors.cardAlt, borderColor: colors.border },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          backgroundColor: colors.accent,
+                          width: `${Math.round(downloadProgress * 100)}%` as `${number}%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Pressable
+                    onPress={cancelDownload}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, alignSelf: "flex-start" })}
+                  >
+                    <Text style={[styles.helperText, { color: colors.textMuted }]}>
+                      Cancel
+                    </Text>
+                  </Pressable>
+                </View>
+              </Row>
+            )}
+
+            {aiStatus === "not_downloaded" && profile.aiEnabled && (
+              <Row>
+                <Pressable
+                  onPress={startDownload}
+                  style={({ pressed }) => [
+                    styles.updateBtn,
+                    {
+                      backgroundColor: colors.cardAlt,
+                      borderColor: colors.border,
+                      opacity: pressed ? 0.7 : 1,
+                    },
+                  ]}
+                >
+                  <Feather name="download-cloud" size={13} color={colors.textMuted} />
+                  <Text style={[styles.updateBtnText, { color: colors.textMuted }]}>
+                    Download model (2.58 GB)
+                  </Text>
+                </Pressable>
+              </Row>
+            )}
+
+            <Row noBorder>
+              <Text style={[styles.helperText, { color: colors.textDim }]}>
+                Gemma 4 E2B · runs fully on-device · no API key · weekly summaries, writing prompts, photo descriptions
+              </Text>
+            </Row>
           </SectionCard>
 
           <SectionTitle text="Reminder" />
@@ -878,6 +1003,16 @@ const styles = StyleSheet.create({
     fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
     lineHeight: 18,
+  },
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: 4,
+    borderRadius: 2,
   },
   privacyRow: {
     flexDirection: "row",

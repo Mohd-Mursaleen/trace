@@ -18,6 +18,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SegmentedTabBar } from "@/components/SegmentedTabBar";
 import { useColors } from "@/hooks/useColors";
+import { AiProvider } from "@/hooks/useAI";
 import { JournalProvider, useJournalStore } from "@/hooks/useJournalStore";
 import {
   configureNotificationHandler,
@@ -120,8 +121,10 @@ export default function RootLayout() {
           <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#0a0a0b" }}>
             <KeyboardProvider>
               <JournalProvider>
-                <StatusBar style="light" />
-                <RootLayoutNav />
+                <AiProvider>
+                  <StatusBar style="light" />
+                  <RootLayoutNav />
+                </AiProvider>
               </JournalProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>

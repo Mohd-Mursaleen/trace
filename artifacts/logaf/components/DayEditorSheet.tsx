@@ -352,6 +352,7 @@ export function DayEditorSheet({ date, visible, onClose }: Props) {
               onTextChange={onTextChange}
               onTranscript={appendTranscript}
               kbHeight={kbHeight}
+              date={date}
             />
           ) : (
             <MemoriesTab images={images} onImagesChange={onImagesChange} />
